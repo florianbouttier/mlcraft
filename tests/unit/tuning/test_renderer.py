@@ -36,8 +36,8 @@ def test_tuning_renderer_generates_html():
     )
     html = TuningReportRenderer().render(result)
     assert "Generalization Overview" in html
-    assert "Official study plots" in html
     assert "Holdout behavior" in html
+    assert "Optuna Plotly" not in html
 
     context = TuningReportRenderer().build_context(result)
     assert isinstance(context, dict)
@@ -48,6 +48,7 @@ def test_tuning_renderer_generates_html():
 def test_tuning_renderer_renders_official_optuna_visuals():
     pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
+    pytest.importorskip("plotly")
     from mlcraft.tuning.renderer import TuningReportRenderer
 
     study = optuna.create_study(direction="maximize")
@@ -86,3 +87,4 @@ def test_tuning_renderer_renders_official_optuna_visuals():
 
     html = TuningReportRenderer().render(result)
     assert "Optimization History" in html
+    assert "Optuna Plotly" in html

@@ -80,7 +80,6 @@ class EvaluationReportRenderer:
             "<div>"
             "<span class='eyebrow'>Evaluation Overview</span>"
             f"<h2>{escape(str(context['task_type']).title())} comparison</h2>"
-            "<p class='muted'>The report ranks prediction bundles first, then shows how their curves differ on the same axes.</p>"
             "</div>"
             "<div class='kpi-grid'>"
             f"{self._metric_card('Compared models', str(summary['model_count']), 'Prediction bundles in this run.')}"
@@ -102,7 +101,6 @@ class EvaluationReportRenderer:
                 "<div>"
                 "<span class='eyebrow'>Model Comparison</span>"
                 "<h2>Graphical leaderboard</h2>"
-                "<p class='muted'>The main metric comes first, then a normalized map highlights where each framework wins or falls behind.</p>"
                 "</div>"
                 "<div class='viz-grid'>"
                 f"{self._figure_card('Primary Metric Ranking', leaderboard_fig, wide=True)}"
@@ -122,7 +120,6 @@ class EvaluationReportRenderer:
             "<div>",
             "<span class='eyebrow'>Curve Comparison</span>",
             "<h2>Curves on shared axes</h2>",
-            "<p class='muted'>Each plot overlays all prediction bundles so framework differences stay visible without thumbnail noise.</p>",
             "</div>",
             "<div class='viz-grid'>",
         ]

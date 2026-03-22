@@ -155,7 +155,7 @@ def build_tuning_context(result: TuningResult, *, title: str | None = "mlcraft T
         "test_metric_value": None if not result.test_metrics else float(result.test_metrics.get(metric_name, next(iter(result.test_metrics.values()), np.nan))),
         "test_score": None if result.test_score is None else float(result.test_score),
         "holdout_curve_groups": [] if result.test_evaluation is None else build_curve_groups(result.test_evaluation.curves),
-        "optuna_plots": ["optimization_history", "param_importances", "parallel_coordinate"],
+        "optuna_plots": ["optimization_history", "parallel_coordinate", "slice"],
         "study": result.study,
     }
 

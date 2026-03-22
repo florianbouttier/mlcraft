@@ -40,7 +40,7 @@ class ShapReportRenderer:
             sections.append(f"<h1>{escape(str(context['title']))}</h1>")
         sections.append(self._render_summary_panel(context))
         sections.append("<section class='panel section-stack'>")
-        sections.append("<div><span class='eyebrow'>Feature Structure</span><h2>Importance and distribution</h2><p class='muted'>The SHAP report keeps the same reporting palette and consumes a serializable context before plotting.</p></div>")
+        sections.append("<div><span class='eyebrow'>Feature Structure</span><h2>Importance and distribution</h2></div>")
         sections.append("<div class='viz-grid viz-grid--compact'>")
         for title, figure in self._figures(context):
             sections.append(self._figure_card(title, figure))
@@ -59,7 +59,6 @@ class ShapReportRenderer:
             "<div>"
             "<span class='eyebrow'>Explainability Overview</span>"
             "<h2>SHAP feature perspective</h2>"
-            "<p class='muted'>Summary plots and top feature scatters are generated from a context dictionary, then styled consistently with the rest of the reporting stack.</p>"
             "</div>"
             "<div class='kpi-grid'>"
             f"{self._metric_card('Feature count', str(context['feature_count']), 'Features available in the SHAP payload.')}"

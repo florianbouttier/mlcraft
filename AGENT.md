@@ -145,7 +145,7 @@ Rules:
 Current dependencies in the project:
 
 - base: `numpy`, `jinja2`, `matplotlib`, `optuna`
-- optional: `shap`, `xgboost`, `lightgbm`, `catboost`
+- optional: `plotly`, `shap`, `xgboost`, `lightgbm`, `catboost`
 
 ## 6. Logging Policy
 
@@ -239,6 +239,7 @@ Rules:
   - `reporting/full_report.py`
 - shared reporting palette stays in `reporting/palette.py`
 - dictionary view-model builders stay in `reporting/view_models.py`
+- Optuna study plots must use the official Optuna Plotly visualizations when a study is available
 
 ## 11. SHAP Rules
 

@@ -4,14 +4,15 @@ from __future__ import annotations
 
 from html import escape
 from typing import Any
-import warnings
 
 import numpy as np
 
 from mlcraft.core.results import TuningResult
+from mlcraft.errors import OptionalDependencyError
 from mlcraft.reporting.html import figure_to_data_uri, wrap_html
 from mlcraft.reporting.palette import chart_colors, get_report_palette
 from mlcraft.reporting.view_models import build_tuning_context
+from mlcraft.utils.optional import optional_import
 
 
 class TuningReportRenderer:
@@ -47,7 +48,8 @@ class TuningReportRenderer:
             sections.append(f"<h1>{escape(str(context['title']))}</h1>")
         sections.append(self._render_summary_panel(context))
         sections.append(self._render_generalization_overview(context))
-        sections.append(self._render_optuna_visualizations(context))
+        if context.get("study") is not None:
+            sections.append(self._render_optuna_visualizations(context))
         sections.append(self._render_configuration_panel(context))
         if context.get("holdout_curve_groups"):
             sections.append(self._render_holdout_curves(context))
@@ -73,7 +75,6 @@ class TuningReportRenderer:
             "<div>"
             "<span class='eyebrow'>Tuning Overview</span>"
             f"<h2>{escape(str(context['metric_name']))} across train, validation, and test</h2>"
-            "<p class='muted'>The dashboard highlights generalization first, then shows the official Optuna visualizations without recreating them.</p>"
             "</div>"
             "<div class='kpi-grid'>"
             f"{self._metric_card('Optimized metric', escape(str(context['metric_name'])), alpha_value)}"
@@ -97,7 +98,6 @@ class TuningReportRenderer:
                 "<div>"
                 "<span class='eyebrow'>Generalization Overview</span>"
                 "<h2>What the model keeps on validation and test</h2>"
-                "<p class='muted'>The first chart tracks metric drift from train to validation to final holdout. The second one surfaces overfitting fold by fold.</p>"
                 "</div>"
                 "<div class='viz-grid'>"
                 f"{self._figure_card('Train / Validation / Test Journey', split_fig, wide=True)}"
@@ -114,8 +114,7 @@ class TuningReportRenderer:
             "<section class='panel section-stack'>",
             "<div>",
             "<span class='eyebrow'>Optuna Visualizations</span>",
-            "<h2>Official study plots</h2>",
-            "<p class='muted'>These plots come from Optuna itself. The renderer does not replace them with homemade versions.</p>",
+            "<h2>Optuna Plotly</h2>",
             "</div>",
             "<div class='viz-grid'>",
         ]
@@ -151,7 +150,6 @@ class TuningReportRenderer:
             "<div>"
             "<span class='eyebrow'>Winning Configuration</span>"
             "<h2>Best trial configuration</h2>"
-            "<p class='muted'>Parameter values stay visible, but in a compact chip cloud instead of a wide table.</p>"
             "</div>"
             f"<div class='chip-cloud'>{chips or empty_chip}</div>"
             f"<div class='kpi-grid'>{''.join(narrative_cards)}</div>"
@@ -167,7 +165,6 @@ class TuningReportRenderer:
             "<div>",
             "<span class='eyebrow'>Final Test Curves</span>",
             "<h2>Holdout behavior</h2>",
-            "<p class='muted'>Final holdout curves stay graphical and use shared axes when several predictions are present.</p>",
             "</div>",
             "<div class='viz-grid'>",
         ]
@@ -230,30 +227,17 @@ class TuningReportRenderer:
         return fig
 
     def _optuna_plots(self, context: dict[str, Any]) -> list[str]:
-        if context.get("study") is None:
-            return ["<div class='card'><p class='muted'>The Optuna study object is not attached, so official study plots are unavailable.</p></div>"]
-
-        plotly_cards = self._optuna_plotly_cards(context)
-        if plotly_cards:
-            return plotly_cards
-
-        matplotlib_cards = self._optuna_matplotlib_cards(context)
-        if matplotlib_cards:
-            return matplotlib_cards
-
-        return ["<div class='card'><p class='muted'>Official Optuna visualizations could not be rendered in this environment.</p></div>"]
+        return self._optuna_plotly_cards(context)
 
     def _optuna_plotly_cards(self, context: dict[str, Any]) -> list[str]:
-        try:
-            import plotly.io as pio
-            from optuna.visualization import plot_optimization_history, plot_parallel_coordinate, plot_param_importances
-        except Exception:
-            return []
+        optional_import("plotly", extra_name="reporting")
+        import plotly.io as pio
+        from optuna.visualization import plot_optimization_history, plot_parallel_coordinate, plot_slice
 
         plotters = {
             "optimization_history": ("Optimization History", plot_optimization_history),
-            "param_importances": ("Parameter Importance", plot_param_importances),
             "parallel_coordinate": ("Parallel Coordinates", plot_parallel_coordinate),
+            "slice": ("Slice Plot", plot_slice),
         }
         cards: list[str] = []
         include_js = True
@@ -276,33 +260,8 @@ class TuningReportRenderer:
                 )
             except Exception:
                 continue
-        return cards
-
-    def _optuna_matplotlib_cards(self, context: dict[str, Any]) -> list[str]:
-        import matplotlib.pyplot as plt
-
-        try:
-            from optuna.visualization.matplotlib import plot_optimization_history, plot_parallel_coordinate, plot_param_importances
-        except Exception:
-            return []
-
-        plotters = {
-            "optimization_history": ("Optimization History", plot_optimization_history),
-            "param_importances": ("Parameter Importance", plot_param_importances),
-            "parallel_coordinate": ("Parallel Coordinates", plot_parallel_coordinate),
-        }
-        cards: list[str] = []
-        for plot_name in context["optuna_plots"]:
-            title, plotter = plotters[plot_name]
-            try:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    axis = plotter(context["study"])
-                figure = axis.figure
-                cards.append(self._figure_card(title, figure))
-                plt.close(figure)
-            except Exception:
-                continue
+        if not cards:
+            raise OptionalDependencyError("Official Optuna Plotly visualizations could not be rendered.")
         return cards
 
     def _plot_curve_groups(self, curve_groups: list[dict[str, Any]]) -> list[tuple[str, object]]:
