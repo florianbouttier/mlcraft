@@ -2,107 +2,100 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from html import escape
+from typing import Any
 
 import numpy as np
 
-from mlcraft.core.results import CurveData, EvaluationResult, MetricRow
+from mlcraft.core.results import EvaluationResult
 from mlcraft.reporting.html import figure_to_data_uri, wrap_html
+from mlcraft.reporting.palette import chart_colors, get_report_palette
+from mlcraft.reporting.view_models import build_evaluation_context
 
 
 class EvaluationReportRenderer:
-    """Render an evaluation result as a comparison-first HTML report.
+    """Render an evaluation result as a comparison-first HTML report."""
 
-    The renderer favors large, visual comparisons over dense tables so model
-    differences are immediately visible when several prediction bundles are
-    evaluated together.
-    """
+    def __init__(self, *, palette: dict[str, str] | None = None) -> None:
+        self.palette = get_report_palette(palette)
 
-    def render(self, result: EvaluationResult, *, title: str | None = "mlcraft Evaluation Report", output_path=None) -> str:
-        """Render a complete evaluation report.
+    def build_context(self, result: EvaluationResult, *, title: str | None = "mlcraft Evaluation Report") -> dict[str, Any]:
+        """Build the evaluation view context used by the HTML renderer.
 
         Args:
-            result: Evaluation output to render.
-            title: Title displayed in the standalone HTML document. When
-                `None`, no top-level heading is added to the body.
+            result: Evaluation output to transform into a render context.
+            title: Optional report title.
+
+        Returns:
+            dict[str, Any]: Dictionary of report data that can be serialized
+            or rendered later.
+        """
+
+        return build_evaluation_context(result, title=title)
+
+    def render(self, result: EvaluationResult, *, title: str | None = "mlcraft Evaluation Report", output_path=None) -> str:
+        """Render a complete evaluation report."""
+
+        context = self.build_context(result, title=title)
+        return self.render_context(context, output_path=output_path)
+
+    def render_context(self, context: dict[str, Any], *, output_path=None) -> str:
+        """Render an evaluation report from a pre-built dictionary context.
+
+        Args:
+            context: Dictionary returned by `build_context()`.
             output_path: Optional file path used to persist the rendered HTML.
 
         Returns:
             str: Standalone HTML document.
-
-        Example:
-            >>> renderer = EvaluationReportRenderer()
-            >>> html = renderer.render(result)
-            >>> html.startswith("<!doctype html>")
-            True
         """
 
-        metrics_by_prediction = self._metrics_by_prediction(result.metric_rows)
-        primary_metric = self._primary_metric_name(result)
         sections: list[str] = []
-        if title:
-            sections.append(f"<h1>{escape(title)}</h1>")
-        sections.append(self._render_summary_panel(result, metrics_by_prediction, primary_metric))
-        sections.append(self._render_model_comparison(result, metrics_by_prediction, primary_metric))
-        if result.curves:
-            sections.append(self._render_curve_comparison(result))
-        html = wrap_html(title or "mlcraft Evaluation Report", "".join(sections))
+        if context.get("title"):
+            sections.append(f"<h1>{escape(str(context['title']))}</h1>")
+        sections.append(self._render_summary_panel(context))
+        sections.append(self._render_model_comparison(context))
+        if context.get("curve_groups"):
+            sections.append(self._render_curve_comparison(context))
+        html = wrap_html(str(context.get("title") or "mlcraft Evaluation Report"), "".join(sections), palette=self.palette)
         if output_path is not None:
             with open(output_path, "w", encoding="utf-8") as handle:
                 handle.write(html)
         return html
 
-    def _metrics_by_prediction(self, metric_rows: list[MetricRow]) -> dict[str, list[MetricRow]]:
-        grouped: dict[str, list[MetricRow]] = defaultdict(list)
-        for row in metric_rows:
-            grouped[row.prediction_name].append(row)
-        return dict(grouped)
-
-    def _primary_metric_name(self, result: EvaluationResult) -> str:
-        preferred = result.task_spec.eval_metric
-        metric_names = [row.metric_name for row in result.metric_rows]
-        if preferred in metric_names:
-            return preferred
-        return metric_names[0]
-
-    def _render_summary_panel(
-        self,
-        result: EvaluationResult,
-        metrics_by_prediction: dict[str, list[MetricRow]],
-        primary_metric: str,
-    ) -> str:
-        primary_rows = [row for row in result.metric_rows if row.metric_name == primary_metric]
-        ordered = sorted(primary_rows, key=lambda row: row.score, reverse=True)
-        leader = ordered[0]
-        lead_margin = ordered[0].score - ordered[1].score if len(ordered) > 1 else 0.0
-        direction = "Higher is better" if leader.higher_is_better else "Lower is better"
+    def _render_summary_panel(self, context: dict[str, Any]) -> str:
+        summary = context["summary"]
+        leader = summary["leader"]
+        if leader is None:
+            leader_name = "n/a"
+            leader_value = "n/a"
+            direction = "No metrics available"
+        else:
+            leader_name = leader["prediction_name"]
+            leader_value = f"{context['primary_metric_name']} = {leader['value']:.6f}"
+            direction = "Higher is better" if leader["higher_is_better"] else "Lower is better"
+        lead_margin = f"{summary['lead_margin']:.6f}"
         return (
             "<section class='panel hero-panel section-stack'>"
             "<div>"
-            f"<span class='eyebrow'>Evaluation Overview</span>"
-            f"<h2>{escape(result.task_spec.task_type.value.title())} comparison</h2>"
+            "<span class='eyebrow'>Evaluation Overview</span>"
+            f"<h2>{escape(str(context['task_type']).title())} comparison</h2>"
             "<p class='muted'>The report ranks prediction bundles first, then shows how their curves differ on the same axes.</p>"
             "</div>"
             "<div class='kpi-grid'>"
-            f"{self._metric_card('Compared models', str(len(metrics_by_prediction)), 'Prediction bundles in this run.')}"
-            f"{self._metric_card('Focus metric', escape(primary_metric), direction)}"
-            f"{self._metric_card('Leader', escape(leader.prediction_name), f'{primary_metric} = {leader.value:.6f}')}"
-            f"{self._metric_card('Lead margin', f'{lead_margin:.6f}', 'Gap vs the next best score.')}"
+            f"{self._metric_card('Compared models', str(summary['model_count']), 'Prediction bundles in this run.')}"
+            f"{self._metric_card('Focus metric', escape(str(context['primary_metric_name'])), direction)}"
+            f"{self._metric_card('Leader', escape(leader_name), leader_value)}"
+            f"{self._metric_card('Lead margin', lead_margin, 'Gap vs the next best score.')}"
             "</div>"
             "</section>"
         )
 
-    def _render_model_comparison(
-        self,
-        result: EvaluationResult,
-        metrics_by_prediction: dict[str, list[MetricRow]],
-        primary_metric: str,
-    ) -> str:
+    def _render_model_comparison(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
-        leaderboard_fig = self._plot_primary_metric_leaderboard(result.metric_rows, primary_metric)
-        heatmap_fig = self._plot_metric_heatmap(metrics_by_prediction, primary_metric)
+        leaderboard_fig = self._plot_primary_metric_leaderboard(context)
+        heatmap_fig = self._plot_metric_heatmap(context)
         try:
             return (
                 "<section class='panel section-stack'>"
@@ -121,7 +114,7 @@ class EvaluationReportRenderer:
             plt.close(leaderboard_fig)
             plt.close(heatmap_fig)
 
-    def _render_curve_comparison(self, result: EvaluationResult) -> str:
+    def _render_curve_comparison(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
         sections = [
@@ -133,7 +126,7 @@ class EvaluationReportRenderer:
             "</div>",
             "<div class='viz-grid'>",
         ]
-        figures = self._plot_curve_groups(result.curves)
+        figures = self._plot_curve_groups(context["curve_groups"])
         try:
             for title, figure in figures:
                 sections.append(self._figure_card(title, figure))
@@ -143,82 +136,74 @@ class EvaluationReportRenderer:
         sections.append("</div></section>")
         return "".join(sections)
 
-    def _plot_primary_metric_leaderboard(self, metric_rows: list[MetricRow], primary_metric: str):
+    def _plot_primary_metric_leaderboard(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
 
-        rows = [row for row in metric_rows if row.metric_name == primary_metric]
-        rows = sorted(rows, key=lambda row: row.score, reverse=True)
-        values = np.asarray([row.value for row in rows], dtype=float)
-        labels = [row.prediction_name for row in rows]
-        baseline = values.max() if rows and not rows[0].higher_is_better else values.min()
+        primary_metric = context["primary_metric_name"]
+        rows = [row for row in context["metric_rows"] if row["metric_name"] == primary_metric]
+        rows = sorted(rows, key=lambda row: row["score"], reverse=True)
+        values = np.asarray([row["value"] for row in rows], dtype=float)
+        labels = [row["prediction_name"] for row in rows]
+        if not rows:
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.text(0.5, 0.5, "No metrics available.", ha="center", va="center", transform=ax.transAxes)
+            ax.axis("off")
+            return fig
+        baseline = values.max() if not rows[0]["higher_is_better"] else values.min()
         positions = np.arange(len(rows))
 
         fig, ax = plt.subplots(figsize=(10.5, max(4.6, 1.0 + 0.9 * len(rows))))
         fig.patch.set_facecolor("#ffffff")
         ax.set_facecolor("#fbfcfd")
-        colors = ["#0f766e" if idx == 0 else "#7aa6c2" for idx in range(len(rows))]
+        colors = [self.palette["accent"] if idx == 0 else self.palette["series_muted"] for idx in range(len(rows))]
         start = np.full_like(values, baseline, dtype=float)
-        ax.hlines(positions, start, values, color="#d7e3ec", linewidth=5, zorder=1)
+        ax.hlines(positions, start, values, color=self.palette["line_soft"], linewidth=5, zorder=1)
         ax.scatter(values, positions, s=170, color=colors, edgecolors="white", linewidth=1.6, zorder=3)
         for idx, (value, label) in enumerate(zip(values, labels)):
-            ax.text(value, idx + 0.16, f"{value:.6f}", color="#16324f", fontsize=10, fontweight="bold")
-            ax.text(baseline, idx - 0.18, label, color="#486581", fontsize=10, ha="left", va="center")
+            ax.text(value, idx + 0.16, f"{value:.6f}", color=self.palette["text_main"], fontsize=10, fontweight="bold")
+            ax.text(baseline, idx - 0.18, label, color=self.palette["text_soft"], fontsize=10, ha="left", va="center")
         ax.set_yticks([])
-        ax.set_xlabel(
-            f"{primary_metric} ({'higher' if rows[0].higher_is_better else 'lower'} is better)"
-        )
+        ax.set_xlabel(f"{primary_metric} ({'higher' if rows[0]['higher_is_better'] else 'lower'} is better)")
         ax.set_title("Primary metric ranking", loc="left", fontsize=16, fontweight="bold")
         ax.grid(axis="x", alpha=0.18)
         for spine in ax.spines.values():
             spine.set_visible(False)
         return fig
 
-    def _plot_metric_heatmap(
-        self,
-        metrics_by_prediction: dict[str, list[MetricRow]],
-        primary_metric: str,
-    ):
+    def _plot_metric_heatmap(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
 
-        def _primary_score(prediction_name: str) -> float:
-            for row in metrics_by_prediction[prediction_name]:
-                if row.metric_name == primary_metric:
-                    return row.score
-            return max(row.score for row in metrics_by_prediction[prediction_name])
-
+        metrics_by_prediction = context["metrics_by_prediction"]
         predictions = sorted(
             metrics_by_prediction,
-            key=_primary_score,
+            key=lambda prediction_name: self._primary_score(metrics_by_prediction[prediction_name], context["primary_metric_name"]),
             reverse=True,
         )
         metrics: list[str] = []
         for prediction_name in predictions:
             for row in metrics_by_prediction[prediction_name]:
-                if row.metric_name not in metrics:
-                    metrics.append(row.metric_name)
+                if row["metric_name"] not in metrics:
+                    metrics.append(row["metric_name"])
 
         raw = np.full((len(predictions), len(metrics)), np.nan, dtype=float)
         normalized = np.full_like(raw, 0.5)
         for row_idx, prediction_name in enumerate(predictions):
-            row_map = {row.metric_name: row for row in metrics_by_prediction[prediction_name]}
+            row_map = {row["metric_name"]: row for row in metrics_by_prediction[prediction_name]}
             for col_idx, metric_name in enumerate(metrics):
                 if metric_name in row_map:
-                    raw[row_idx, col_idx] = row_map[metric_name].value
+                    raw[row_idx, col_idx] = row_map[metric_name]["value"]
 
         for col_idx, metric_name in enumerate(metrics):
             column_rows = [
-                next(row for row in metrics_by_prediction[prediction_name] if row.metric_name == metric_name)
+                next(row for row in metrics_by_prediction[prediction_name] if row["metric_name"] == metric_name)
                 for prediction_name in predictions
-                if any(row.metric_name == metric_name for row in metrics_by_prediction[prediction_name])
+                if any(row["metric_name"] == metric_name for row in metrics_by_prediction[prediction_name])
             ]
-            scores = np.asarray([row.score for row in column_rows], dtype=float)
-            if scores.size and float(scores.max()) != float(scores.min()):
-                scaled = (scores - scores.min()) / (scores.max() - scores.min())
-            else:
-                scaled = np.full(scores.shape, 0.5)
+            scores = np.asarray([row["score"] for row in column_rows], dtype=float)
+            scaled = (scores - scores.min()) / (scores.max() - scores.min()) if scores.size and float(scores.max()) != float(scores.min()) else np.full(scores.shape, 0.5)
             row_pointer = 0
             for row_idx, prediction_name in enumerate(predictions):
-                if any(row.metric_name == metric_name for row in metrics_by_prediction[prediction_name]):
+                if any(row["metric_name"] == metric_name for row in metrics_by_prediction[prediction_name]):
                     normalized[row_idx, col_idx] = scaled[row_pointer]
                     row_pointer += 1
 
@@ -232,7 +217,7 @@ class EvaluationReportRenderer:
             for col_idx in range(len(metrics)):
                 if np.isnan(raw[row_idx, col_idx]):
                     continue
-                text_color = "#102a43" if normalized[row_idx, col_idx] < 0.62 else "white"
+                text_color = self.palette["text_main"] if normalized[row_idx, col_idx] < 0.62 else "white"
                 ax.text(col_idx, row_idx, f"{raw[row_idx, col_idx]:.3f}", ha="center", va="center", color=text_color, fontsize=9, fontweight="bold")
         for spine in ax.spines.values():
             spine.set_visible(False)
@@ -240,46 +225,38 @@ class EvaluationReportRenderer:
         colorbar.ax.set_ylabel("Normalized performance", rotation=270, labelpad=18)
         return fig
 
-    def _plot_curve_groups(self, curves_by_prediction: dict[str, list[CurveData]]) -> list[tuple[str, object]]:
+    def _plot_curve_groups(self, curve_groups: list[dict[str, Any]]) -> list[tuple[str, object]]:
         import matplotlib.pyplot as plt
 
-        grouped: dict[str, list[tuple[str, CurveData]]] = defaultdict(list)
-        for prediction_name, curves in curves_by_prediction.items():
-            for curve in curves:
-                grouped[curve.name].append((prediction_name, curve))
-
         figures: list[tuple[str, object]] = []
-        palette = ["#0f766e", "#2563eb", "#d97706", "#7c3aed", "#c2410c", "#0891b2"]
-        for curve_name, entries in grouped.items():
+        palette = chart_colors(self.palette)
+        for curve_group in curve_groups:
             fig, ax = plt.subplots(figsize=(8.8, 5.6))
             fig.patch.set_facecolor("#ffffff")
             ax.set_facecolor("#fbfcfd")
-            for idx, (prediction_name, curve) in enumerate(entries):
+            for idx, series in enumerate(curve_group["series"]):
                 color = palette[idx % len(palette)]
-                if curve.name == "residuals":
-                    ax.plot(curve.x, curve.y, color=color, linewidth=2.5, label=prediction_name)
-                    ax.fill_between(curve.x, curve.y, alpha=0.12, color=color)
+                x_values = np.asarray(series["x"], dtype=float)
+                y_values = np.asarray(series["y"], dtype=float)
+                if curve_group["curve_name"] == "residuals":
+                    ax.plot(x_values, y_values, color=color, linewidth=2.5, label=series["prediction_name"])
+                    ax.fill_between(x_values, y_values, alpha=0.12, color=color)
                 else:
-                    ax.plot(curve.x, curve.y, color=color, linewidth=2.7, label=prediction_name)
-            if curve_name in {"calibration", "poisson_calibration"}:
-                diagonal_min = min(
-                    min(float(curve.x.min()) if curve.x.size else 0.0 for _, curve in entries),
-                    min(float(curve.y.min()) if curve.y.size else 0.0 for _, curve in entries),
-                )
-                diagonal_max = max(
-                    max(float(curve.x.max()) if curve.x.size else 1.0 for _, curve in entries),
-                    max(float(curve.y.max()) if curve.y.size else 1.0 for _, curve in entries),
-                )
-                ax.plot([diagonal_min, diagonal_max], [diagonal_min, diagonal_max], linestyle="--", color="#94a3b8", linewidth=1.6)
-            reference_curve = entries[0][1]
-            ax.set_title(curve_name.replace("_", " ").title(), loc="left", fontsize=16, fontweight="bold")
-            ax.set_xlabel(reference_curve.x_label)
-            ax.set_ylabel(reference_curve.y_label)
+                    ax.plot(x_values, y_values, color=color, linewidth=2.7, label=series["prediction_name"])
+            if curve_group["curve_name"] in {"calibration", "poisson_calibration"}:
+                diagonal_min = min(min(series["x"] or [0.0]) for series in curve_group["series"])
+                diagonal_min = min(diagonal_min, min(min(series["y"] or [0.0]) for series in curve_group["series"]))
+                diagonal_max = max(max(series["x"] or [1.0]) for series in curve_group["series"])
+                diagonal_max = max(diagonal_max, max(max(series["y"] or [1.0]) for series in curve_group["series"]))
+                ax.plot([diagonal_min, diagonal_max], [diagonal_min, diagonal_max], linestyle="--", color=self.palette["grid_soft"], linewidth=1.6)
+            ax.set_title(curve_group["title"], loc="left", fontsize=16, fontweight="bold")
+            ax.set_xlabel(curve_group["x_label"])
+            ax.set_ylabel(curve_group["y_label"])
             ax.grid(alpha=0.18)
             ax.legend(frameon=False, loc="best")
             for spine in ax.spines.values():
                 spine.set_visible(False)
-            figures.append((curve_name.replace("_", " ").title(), fig))
+            figures.append((curve_group["title"], fig))
         return figures
 
     def _metric_card(self, title: str, value: str, subtitle: str) -> str:
@@ -299,3 +276,9 @@ class EvaluationReportRenderer:
             f"<div class='plot-frame'><img alt='{escape(title)}' src='{figure_to_data_uri(figure)}' /></div>"
             "</div>"
         )
+
+    def _primary_score(self, rows: list[dict[str, Any]], primary_metric: str) -> float:
+        for row in rows:
+            if row["metric_name"] == primary_metric:
+                return float(row["score"])
+        return max(float(row["score"]) for row in rows)

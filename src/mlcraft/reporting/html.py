@@ -6,6 +6,8 @@ import base64
 import io
 import warnings
 
+from mlcraft.reporting.palette import css_variables, get_report_palette
+
 BASE_TEMPLATE = """
 <!doctype html>
 <html lang="en">
@@ -15,18 +17,7 @@ BASE_TEMPLATE = """
     <title>{{ title }}</title>
     <style>
       :root {
-        --bg-top: #f4efe7;
-        --bg-bottom: #e9f2f5;
-        --panel: rgba(255, 255, 255, 0.88);
-        --panel-strong: rgba(255, 255, 255, 0.96);
-        --border: rgba(127, 154, 173, 0.22);
-        --text-main: #16324f;
-        --text-soft: #5b7083;
-        --accent: #0f766e;
-        --accent-soft: #d9f3ef;
-        --danger: #c2410c;
-        --danger-soft: #fff1e8;
-        --shadow: 0 24px 60px rgba(22, 50, 79, 0.08);
+{{ css_variables }}
       }
       * { box-sizing: border-box; }
       body {
@@ -74,6 +65,9 @@ BASE_TEMPLATE = """
         gap: 20px;
         grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
       }
+      .viz-grid--compact {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      }
       .kpi-grid {
         display: grid;
         gap: 16px;
@@ -90,6 +84,9 @@ BASE_TEMPLATE = """
       .metric-card {
         background:
           linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 249, 250, 0.92));
+      }
+      .card--ghost {
+        background: rgba(255, 255, 255, 0.72);
       }
       .eyebrow {
         display: inline-block;
@@ -157,6 +154,12 @@ BASE_TEMPLATE = """
       .plotly-card .main-svg {
         border-radius: 18px;
       }
+      .section-divider {
+        height: 1px;
+        border: 0;
+        background: linear-gradient(90deg, transparent, var(--border), transparent);
+        margin: 8px 0;
+      }
       code {
         background: rgba(226, 232, 240, 0.9);
         padding: 0.16rem 0.38rem;
@@ -177,8 +180,11 @@ BASE_TEMPLATE = """
 """
 
 
-def make_environment():
+def make_environment(*, palette=None):
     """Create the shared Jinja environment used by HTML renderers.
+
+    Args:
+        palette: Optional palette override used by the base template.
 
     Returns:
         Environment: Configured Jinja environment with the base template
@@ -215,17 +221,18 @@ def figure_to_data_uri(figure) -> str:
     return f"data:image/png;base64,{payload}"
 
 
-def wrap_html(title: str, body: str) -> str:
+def wrap_html(title: str, body: str, *, palette=None) -> str:
     """Wrap rendered HTML fragments into the shared document shell.
 
     Args:
         title: Document title.
         body: Pre-rendered HTML body content.
+        palette: Optional palette override.
 
     Returns:
         str: Standalone HTML document.
     """
 
-    env = make_environment()
+    env = make_environment(palette=palette)
     template = env.get_template("base.html")
-    return template.render(title=title, body=body)
+    return template.render(title=title, body=body, css_variables=css_variables(get_report_palette(palette)))

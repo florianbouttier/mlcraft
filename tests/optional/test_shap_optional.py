@@ -25,6 +25,9 @@ def test_shap_renderer_generates_html():
         feature_values=np.array([[1.0, 0.0], [2.0, 1.0]]),
         importance=np.array([0.15, 0.15]),
     )
-    html = ShapReportRenderer().render(result)
+    renderer = ShapReportRenderer()
+    context = renderer.build_context(result)
+    assert isinstance(context, dict)
+    assert context["feature_count"] == 2
+    html = renderer.render_context(context)
     assert "SHAP Report" in html
-

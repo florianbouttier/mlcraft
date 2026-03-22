@@ -33,7 +33,10 @@ def test_full_report_builder_combines_sections():
         feature_values=np.array([[1.0, 0.0], [2.0, 1.0]]),
         importance=np.array([0.15, 0.15]),
     )
-    html = FullReportBuilder().build(evaluation=evaluation, tuning=tuning, shap=shap)
+    builder = FullReportBuilder()
+    context = builder.build_context(evaluation=evaluation, tuning=tuning, shap=shap)
+    assert isinstance(context, dict)
+    html = builder.render_context(context)
     assert "Full Report" in html
     assert "Evaluation" in html
     assert "SHAP" in html

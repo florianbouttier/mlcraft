@@ -2,26 +2,40 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from html import escape
+from typing import Any
 import warnings
 
 import numpy as np
 
-from mlcraft.core.results import CurveData, EvaluationResult, TuningResult
+from mlcraft.core.results import TuningResult
 from mlcraft.reporting.html import figure_to_data_uri, wrap_html
+from mlcraft.reporting.palette import chart_colors, get_report_palette
+from mlcraft.reporting.view_models import build_tuning_context
 
 
 class TuningReportRenderer:
     """Render a tuning result as a visual HTML dashboard."""
 
+    def __init__(self, *, palette: dict[str, str] | None = None) -> None:
+        self.palette = get_report_palette(palette)
+
+    def build_context(self, result: TuningResult, *, title: str | None = "mlcraft Tuning Report") -> dict[str, Any]:
+        """Build the tuning view context used by the HTML renderer."""
+
+        return build_tuning_context(result, title=title)
+
     def render(self, result: TuningResult, *, title: str | None = "mlcraft Tuning Report", output_path=None) -> str:
-        """Render a complete tuning report.
+        """Render a complete tuning report."""
+
+        context = self.build_context(result, title=title)
+        return self.render_context(context, output_path=output_path)
+
+    def render_context(self, context: dict[str, Any], *, output_path=None) -> str:
+        """Render a tuning report from a pre-built dictionary context.
 
         Args:
-            result: Tuning output to render.
-            title: Title displayed in the standalone HTML document. When
-                `None`, no top-level heading is added to the body.
+            context: Dictionary returned by `build_context()`.
             output_path: Optional file path used to persist the rendered HTML.
 
         Returns:
@@ -29,54 +43,54 @@ class TuningReportRenderer:
         """
 
         sections: list[str] = []
-        if title:
-            sections.append(f"<h1>{escape(title)}</h1>")
-        sections.append(self._render_summary_panel(result))
-        sections.append(self._render_generalization_overview(result))
-        sections.append(self._render_optuna_visualizations(result))
-        sections.append(self._render_configuration_panel(result))
-        if result.test_evaluation is not None and result.test_evaluation.curves:
-            sections.append(self._render_holdout_curves(result.test_evaluation))
-        html = wrap_html(title or "mlcraft Tuning Report", "".join(sections))
+        if context.get("title"):
+            sections.append(f"<h1>{escape(str(context['title']))}</h1>")
+        sections.append(self._render_summary_panel(context))
+        sections.append(self._render_generalization_overview(context))
+        sections.append(self._render_optuna_visualizations(context))
+        sections.append(self._render_configuration_panel(context))
+        if context.get("holdout_curve_groups"):
+            sections.append(self._render_holdout_curves(context))
+        html = wrap_html(str(context.get("title") or "mlcraft Tuning Report"), "".join(sections), palette=self.palette)
         if output_path is not None:
             with open(output_path, "w", encoding="utf-8") as handle:
                 handle.write(html)
         return html
 
-    def _render_summary_panel(self, result: TuningResult) -> str:
-        metric_name = result.metric_name or "score"
-        generalization_gap = abs(result.best_trial.train_score - result.best_trial.val_score)
+    def _render_summary_panel(self, context: dict[str, Any]) -> str:
         gap_badge = (
             "<span class='badge badge--alert'>Overfitting watch</span>"
-            if generalization_gap >= 0.05
+            if context["generalization_gap"] >= 0.05
             else "<span class='badge'>Gap under control</span>"
         )
-        holdout_value = None
-        if result.test_metrics and metric_name in result.test_metrics:
-            holdout_value = f"{result.test_metrics[metric_name]:.6f}"
+        holdout_value = "n/a" if context["test_metric_value"] is None else f"{context['test_metric_value']:.6f}"
+        alpha_value = f"alpha = {context['alpha']:.4f}"
+        best_score = f"{context['best_score']:.6f}"
+        validation_score = f"{context['val_score']:.6f}"
+        generalization_gap = f"{context['generalization_gap']:.6f}"
         return (
             "<section class='panel hero-panel section-stack'>"
             "<div>"
             "<span class='eyebrow'>Tuning Overview</span>"
-            f"<h2>{escape(metric_name)} across train, validation, and test</h2>"
+            f"<h2>{escape(str(context['metric_name']))} across train, validation, and test</h2>"
             "<p class='muted'>The dashboard highlights generalization first, then shows the official Optuna visualizations without recreating them.</p>"
             "</div>"
             "<div class='kpi-grid'>"
-            f"{self._metric_card('Optimized metric', escape(metric_name), f'alpha = {result.alpha:.4f}')}"
-            f"{self._metric_card('Best penalized score', f'{result.best_score:.6f}', 'Optuna maximizes this internal score.')}"
-            f"{self._metric_card('Validation score', f'{result.best_trial.val_score:.6f}', 'Fold-average internal validation score.')}"
-            f"{self._metric_card('Generalization gap', f'{generalization_gap:.6f}', 'Absolute train-vs-validation score gap.')}"
-            f"{self._metric_card('Final test metric', holdout_value or 'n/a', 'Available only when a holdout set is provided.')}"
+            f"{self._metric_card('Optimized metric', escape(str(context['metric_name'])), alpha_value)}"
+            f"{self._metric_card('Best penalized score', best_score, 'Optuna maximizes this internal score.')}"
+            f"{self._metric_card('Validation score', validation_score, 'Fold-average internal validation score.')}"
+            f"{self._metric_card('Generalization gap', generalization_gap, 'Absolute train-vs-validation score gap.')}"
+            f"{self._metric_card('Final test metric', holdout_value, 'Available only when a holdout set is provided.')}"
             "</div>"
             f"{gap_badge}"
             "</section>"
         )
 
-    def _render_generalization_overview(self, result: TuningResult) -> str:
+    def _render_generalization_overview(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
-        split_fig = self._plot_split_journey(result)
-        fold_fig = self._plot_fold_gaps(result)
+        split_fig = self._plot_split_journey(context)
+        fold_fig = self._plot_fold_gaps(context)
         try:
             return (
                 "<section class='panel section-stack'>"
@@ -95,7 +109,7 @@ class TuningReportRenderer:
             plt.close(split_fig)
             plt.close(fold_fig)
 
-    def _render_optuna_visualizations(self, result: TuningResult) -> str:
+    def _render_optuna_visualizations(self, context: dict[str, Any]) -> str:
         sections = [
             "<section class='panel section-stack'>",
             "<div>",
@@ -105,34 +119,31 @@ class TuningReportRenderer:
             "</div>",
             "<div class='viz-grid'>",
         ]
-        sections.extend(self._optuna_plots(result))
+        sections.extend(self._optuna_plots(context))
         sections.append("</div></section>")
         return "".join(sections)
 
-    def _render_configuration_panel(self, result: TuningResult) -> str:
-        best_fold = max(result.fold_summaries, key=lambda fold: fold.val_score) if result.fold_summaries else None
-        worst_fold = min(result.fold_summaries, key=lambda fold: fold.val_score) if result.fold_summaries else None
+    def _render_configuration_panel(self, context: dict[str, Any]) -> str:
         narrative_cards = []
-        if best_fold is not None:
+        if context.get("best_fold") is not None:
             narrative_cards.append(
                 self._metric_card(
                     "Best validation fold",
-                    f"Fold {best_fold.fold_index}",
-                    f"validation score = {best_fold.val_score:.6f}",
+                    f"Fold {context['best_fold']['fold_index']}",
+                    f"validation score = {context['best_fold']['val_score']:.6f}",
                 )
             )
-        if worst_fold is not None:
+        if context.get("worst_fold") is not None:
             narrative_cards.append(
                 self._metric_card(
                     "Most fragile fold",
-                    f"Fold {worst_fold.fold_index}",
-                    f"validation score = {worst_fold.val_score:.6f}",
+                    f"Fold {context['worst_fold']['fold_index']}",
+                    f"validation score = {context['worst_fold']['val_score']:.6f}",
                 )
             )
-
         chips = "".join(
             f"<span class='chip'><strong>{escape(str(key))}</strong><span>{escape(self._format_value(value))}</span></span>"
-            for key, value in result.best_params.items()
+            for key, value in context["best_params"].items()
         )
         empty_chip = "<span class='muted'>No tuned parameters were recorded.</span>"
         return (
@@ -147,10 +158,10 @@ class TuningReportRenderer:
             "</section>"
         )
 
-    def _render_holdout_curves(self, evaluation_result: EvaluationResult) -> str:
+    def _render_holdout_curves(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
-        figures = self._plot_curve_groups(evaluation_result.curves)
+        figures = self._plot_curve_groups(context["holdout_curve_groups"])
         sections = [
             "<section class='panel section-stack'>",
             "<div>",
@@ -169,40 +180,31 @@ class TuningReportRenderer:
         sections.append("</div></section>")
         return "".join(sections)
 
-    def _plot_split_journey(self, result: TuningResult):
+    def _plot_split_journey(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
 
-        metric_name = result.metric_name or next(iter(result.train_metrics.keys()), "metric")
-        split_labels = ["train", "validation"]
-        split_values = [
-            self._metric_value(result.train_metrics, metric_name),
-            self._metric_value(result.val_metrics, metric_name),
-        ]
-        if result.test_metrics and metric_name in result.test_metrics:
-            split_labels.append("final_test")
-            split_values.append(self._metric_value(result.test_metrics, metric_name))
-        y_values = np.asarray(split_values, dtype=float)
-        x_values = np.arange(len(split_labels))
-
+        points = context["split_points"]
+        y_values = np.asarray([point["value"] for point in points], dtype=float)
+        x_values = np.arange(len(points))
         fig, ax = plt.subplots(figsize=(10.5, 5.8))
         fig.patch.set_facecolor("#ffffff")
         ax.set_facecolor("#fbfcfd")
-        ax.plot(x_values, y_values, color="#0f766e", linewidth=3.2, marker="o", markersize=9)
-        ax.fill_between(x_values, y_values, alpha=0.08, color="#0f766e")
+        ax.plot(x_values, y_values, color=self.palette["accent"], linewidth=3.2, marker="o", markersize=9)
+        ax.fill_between(x_values, y_values, alpha=0.08, color=self.palette["accent"])
         for idx, value in enumerate(y_values):
-            ax.text(x_values[idx], value, f"  {value:.6f}", va="center", fontsize=10, fontweight="bold", color="#16324f")
-        ax.set_xticks(x_values, labels=[label.replace("_", " ").title() for label in split_labels])
-        ax.set_ylabel(f"{metric_name} (raw metric value)")
+            ax.text(x_values[idx], value, f"  {value:.6f}", va="center", fontsize=10, fontweight="bold", color=self.palette["text_main"])
+        ax.set_xticks(x_values, labels=[point["label"].replace("_", " ").title() for point in points])
+        ax.set_ylabel(f"{context['metric_name']} (raw metric value)")
         ax.set_title("Train to validation to test", loc="left", fontsize=16, fontweight="bold")
         ax.grid(alpha=0.18)
         for spine in ax.spines.values():
             spine.set_visible(False)
         return fig
 
-    def _plot_fold_gaps(self, result: TuningResult):
+    def _plot_fold_gaps(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
 
-        folds = result.fold_summaries
+        folds = context["fold_points"]
         fig, ax = plt.subplots(figsize=(9.0, max(4.8, 1.0 + 0.9 * max(len(folds), 1))))
         fig.patch.set_facecolor("#ffffff")
         ax.set_facecolor("#fbfcfd")
@@ -213,13 +215,12 @@ class TuningReportRenderer:
 
         positions = np.arange(len(folds))
         for idx, fold in enumerate(folds):
-            gap = fold.train_score - fold.val_score
-            color = "#c2410c" if gap > 0.05 else "#0f766e"
-            ax.plot([fold.val_score, fold.train_score], [idx, idx], color=color, linewidth=4, solid_capstyle="round")
-            ax.scatter(fold.val_score, idx, color="#2563eb", s=90, zorder=3, label="Validation" if idx == 0 else None)
-            ax.scatter(fold.train_score, idx, color="#0f766e", s=90, zorder=3, label="Train" if idx == 0 else None)
-            ax.scatter(fold.penalized_score, idx, color="#c2410c", s=100, marker="D", zorder=3, label="Penalized" if idx == 0 else None)
-        ax.set_yticks(positions, labels=[f"Fold {fold.fold_index}" for fold in folds])
+            color = self.palette["danger"] if fold["gap"] > 0.05 else self.palette["accent"]
+            ax.plot([fold["val_score"], fold["train_score"]], [idx, idx], color=color, linewidth=4, solid_capstyle="round")
+            ax.scatter(fold["val_score"], idx, color=self.palette["series_2"], s=90, zorder=3, label="Validation" if idx == 0 else None)
+            ax.scatter(fold["train_score"], idx, color=self.palette["accent"], s=90, zorder=3, label="Train" if idx == 0 else None)
+            ax.scatter(fold["penalized_score"], idx, color=self.palette["danger"], s=100, marker="D", zorder=3, label="Penalized" if idx == 0 else None)
+        ax.set_yticks(positions, labels=[f"Fold {fold['fold_index']}" for fold in folds])
         ax.set_xlabel("Internal score (higher is always better)")
         ax.set_title("Fold generalization gap", loc="left", fontsize=16, fontweight="bold")
         ax.grid(alpha=0.18, axis="x")
@@ -228,36 +229,38 @@ class TuningReportRenderer:
             spine.set_visible(False)
         return fig
 
-    def _optuna_plots(self, result: TuningResult) -> list[str]:
-        if result.study is None:
+    def _optuna_plots(self, context: dict[str, Any]) -> list[str]:
+        if context.get("study") is None:
             return ["<div class='card'><p class='muted'>The Optuna study object is not attached, so official study plots are unavailable.</p></div>"]
 
-        plotly_cards = self._optuna_plotly_cards(result)
+        plotly_cards = self._optuna_plotly_cards(context)
         if plotly_cards:
             return plotly_cards
 
-        matplotlib_cards = self._optuna_matplotlib_cards(result)
+        matplotlib_cards = self._optuna_matplotlib_cards(context)
         if matplotlib_cards:
             return matplotlib_cards
 
         return ["<div class='card'><p class='muted'>Official Optuna visualizations could not be rendered in this environment.</p></div>"]
 
-    def _optuna_plotly_cards(self, result: TuningResult) -> list[str]:
+    def _optuna_plotly_cards(self, context: dict[str, Any]) -> list[str]:
         try:
             import plotly.io as pio
             from optuna.visualization import plot_optimization_history, plot_parallel_coordinate, plot_param_importances
         except Exception:
             return []
 
+        plotters = {
+            "optimization_history": ("Optimization History", plot_optimization_history),
+            "param_importances": ("Parameter Importance", plot_param_importances),
+            "parallel_coordinate": ("Parallel Coordinates", plot_parallel_coordinate),
+        }
         cards: list[str] = []
         include_js = True
-        for title, plotter in (
-            ("Optimization History", plot_optimization_history),
-            ("Parameter Importance", plot_param_importances),
-            ("Parallel Coordinates", plot_parallel_coordinate),
-        ):
+        for plot_name in context["optuna_plots"]:
+            title, plotter = plotters[plot_name]
             try:
-                figure = plotter(result.study)
+                figure = plotter(context["study"])
                 fragment = pio.to_html(
                     figure,
                     full_html=False,
@@ -275,7 +278,7 @@ class TuningReportRenderer:
                 continue
         return cards
 
-    def _optuna_matplotlib_cards(self, result: TuningResult) -> list[str]:
+    def _optuna_matplotlib_cards(self, context: dict[str, Any]) -> list[str]:
         import matplotlib.pyplot as plt
 
         try:
@@ -283,16 +286,18 @@ class TuningReportRenderer:
         except Exception:
             return []
 
+        plotters = {
+            "optimization_history": ("Optimization History", plot_optimization_history),
+            "param_importances": ("Parameter Importance", plot_param_importances),
+            "parallel_coordinate": ("Parallel Coordinates", plot_parallel_coordinate),
+        }
         cards: list[str] = []
-        for title, plotter in (
-            ("Optimization History", plot_optimization_history),
-            ("Parameter Importance", plot_param_importances),
-            ("Parallel Coordinates", plot_parallel_coordinate),
-        ):
+        for plot_name in context["optuna_plots"]:
+            title, plotter = plotters[plot_name]
             try:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    axis = plotter(result.study)
+                    axis = plotter(context["study"])
                 figure = axis.figure
                 cards.append(self._figure_card(title, figure))
                 plt.close(figure)
@@ -300,52 +305,39 @@ class TuningReportRenderer:
                 continue
         return cards
 
-    def _plot_curve_groups(self, curves_by_prediction: dict[str, list[CurveData]]) -> list[tuple[str, object]]:
+    def _plot_curve_groups(self, curve_groups: list[dict[str, Any]]) -> list[tuple[str, object]]:
         import matplotlib.pyplot as plt
 
-        grouped: dict[str, list[tuple[str, CurveData]]] = defaultdict(list)
-        for prediction_name, curves in curves_by_prediction.items():
-            for curve in curves:
-                grouped[curve.name].append((prediction_name, curve))
-
         figures: list[tuple[str, object]] = []
-        palette = ["#0f766e", "#2563eb", "#d97706", "#7c3aed", "#c2410c", "#0891b2"]
-        for curve_name, entries in grouped.items():
+        palette = chart_colors(self.palette)
+        for curve_group in curve_groups:
             fig, ax = plt.subplots(figsize=(8.8, 5.6))
             fig.patch.set_facecolor("#ffffff")
             ax.set_facecolor("#fbfcfd")
-            for idx, (prediction_name, curve) in enumerate(entries):
+            for idx, series in enumerate(curve_group["series"]):
                 color = palette[idx % len(palette)]
-                if curve.name == "residuals":
-                    ax.plot(curve.x, curve.y, color=color, linewidth=2.5, label=prediction_name)
-                    ax.fill_between(curve.x, curve.y, alpha=0.12, color=color)
+                x_values = np.asarray(series["x"], dtype=float)
+                y_values = np.asarray(series["y"], dtype=float)
+                if curve_group["curve_name"] == "residuals":
+                    ax.plot(x_values, y_values, color=color, linewidth=2.5, label=series["prediction_name"])
+                    ax.fill_between(x_values, y_values, alpha=0.12, color=color)
                 else:
-                    ax.plot(curve.x, curve.y, color=color, linewidth=2.7, label=prediction_name)
-            if curve_name in {"calibration", "poisson_calibration"}:
-                diagonal_min = min(
-                    min(float(curve.x.min()) if curve.x.size else 0.0 for _, curve in entries),
-                    min(float(curve.y.min()) if curve.y.size else 0.0 for _, curve in entries),
-                )
-                diagonal_max = max(
-                    max(float(curve.x.max()) if curve.x.size else 1.0 for _, curve in entries),
-                    max(float(curve.y.max()) if curve.y.size else 1.0 for _, curve in entries),
-                )
-                ax.plot([diagonal_min, diagonal_max], [diagonal_min, diagonal_max], linestyle="--", color="#94a3b8", linewidth=1.6)
-            reference_curve = entries[0][1]
-            ax.set_title(curve_name.replace("_", " ").title(), loc="left", fontsize=16, fontweight="bold")
-            ax.set_xlabel(reference_curve.x_label)
-            ax.set_ylabel(reference_curve.y_label)
+                    ax.plot(x_values, y_values, color=color, linewidth=2.7, label=series["prediction_name"])
+            if curve_group["curve_name"] in {"calibration", "poisson_calibration"}:
+                diagonal_min = min(min(series["x"] or [0.0]) for series in curve_group["series"])
+                diagonal_min = min(diagonal_min, min(min(series["y"] or [0.0]) for series in curve_group["series"]))
+                diagonal_max = max(max(series["x"] or [1.0]) for series in curve_group["series"])
+                diagonal_max = max(diagonal_max, max(max(series["y"] or [1.0]) for series in curve_group["series"]))
+                ax.plot([diagonal_min, diagonal_max], [diagonal_min, diagonal_max], linestyle="--", color=self.palette["grid_soft"], linewidth=1.6)
+            ax.set_title(curve_group["title"], loc="left", fontsize=16, fontweight="bold")
+            ax.set_xlabel(curve_group["x_label"])
+            ax.set_ylabel(curve_group["y_label"])
             ax.grid(alpha=0.18)
             ax.legend(frameon=False, loc="best")
             for spine in ax.spines.values():
                 spine.set_visible(False)
-            figures.append((curve_name.replace("_", " ").title(), fig))
+            figures.append((curve_group["title"], fig))
         return figures
-
-    def _metric_value(self, metric_map: dict[str, float], metric_name: str) -> float:
-        if metric_name in metric_map:
-            return float(metric_map[metric_name])
-        return float(next(iter(metric_map.values())))
 
     def _metric_card(self, title: str, value: str, subtitle: str) -> str:
         return (

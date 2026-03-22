@@ -39,6 +39,11 @@ def test_tuning_renderer_generates_html():
     assert "Official study plots" in html
     assert "Holdout behavior" in html
 
+    context = TuningReportRenderer().build_context(result)
+    assert isinstance(context, dict)
+    assert context["metric_name"] == "rmse"
+    assert context["split_points"][0]["label"] == "train"
+
 
 def test_tuning_renderer_renders_official_optuna_visuals():
     pytest.importorskip("matplotlib")

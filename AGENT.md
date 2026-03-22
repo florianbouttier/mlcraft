@@ -63,6 +63,8 @@ This is the current implemented architecture:
 - `reporting/`
   - shared HTML helpers
   - `html.py` contains the shared HTML shell
+  - `palette.py` contains the centralized report palette and chart colors
+  - `view_models.py` contains dictionary-based report contexts consumed by renderers
   - `full_report.py` contains `FullReportBuilder`
 - `utils/`
   - shared utilities
@@ -91,6 +93,7 @@ Existing interactions that should be preserved:
 - When `X_test` and `y_test` are provided to `OptunaSearch.run()`, the best model is refit on the full training data, evaluated on the holdout set, and the final holdout metrics are stored in `TuningResult`.
 - `ShapAnalyzer.compute()` returns a `ShapResult`.
 - `FullReportBuilder.build()` combines `EvaluationResult`, `TuningResult`, and `ShapResult`.
+- Reporting renderers build dictionary contexts first, then render HTML from those contexts.
 
 ## 3. Core Design Principles
 
@@ -225,6 +228,7 @@ Rules:
 
 - computation and HTML rendering must remain separate
 - `Evaluator` computes, renderers render
+- reporting view data should be prepared as dictionaries before HTML rendering whenever possible
 - `EvaluationResult` must not contain HTML logic
 - `TuningResult` must not contain HTML logic
 - `ShapResult` must not contain HTML logic
@@ -233,6 +237,8 @@ Rules:
   - `tuning/renderer.py`
   - `shap/renderer.py`
   - `reporting/full_report.py`
+- shared reporting palette stays in `reporting/palette.py`
+- dictionary view-model builders stay in `reporting/view_models.py`
 
 ## 11. SHAP Rules
 
