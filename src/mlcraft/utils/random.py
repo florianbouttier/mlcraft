@@ -8,7 +8,14 @@ import numpy as np
 
 
 def normalize_random_state(random_state: int | np.random.Generator | None = None) -> np.random.Generator:
-    """Return a numpy Generator from a supported random state input."""
+    """Return a numpy generator from a supported random-state input.
+
+    Args:
+        random_state: Optional seed or existing generator.
+
+    Returns:
+        np.random.Generator: Normalized generator instance.
+    """
 
     if isinstance(random_state, np.random.Generator):
         return random_state
@@ -16,7 +23,13 @@ def normalize_random_state(random_state: int | np.random.Generator | None = None
 
 
 def make_rng(random_state: int | np.random.Generator | None = None) -> np.random.Generator:
-    """Alias for normalize_random_state."""
+    """Return a numpy generator for the provided random-state input.
+
+    Args:
+        random_state: Optional seed or existing generator.
+
+    Returns:
+        np.random.Generator: Normalized generator instance.
+    """
 
     return normalize_random_state(random_state)
-

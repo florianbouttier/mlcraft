@@ -10,7 +10,16 @@ import numpy as np
 
 
 def to_serializable(value: Any, *, include_arrays: bool = True) -> Any:
-    """Convert nested objects into JSON-friendly structures."""
+    """Convert nested objects into JSON-friendly structures.
+
+    Args:
+        value: Object to serialize.
+        include_arrays: Whether to inline array values instead of compact
+            array metadata.
+
+    Returns:
+        Any: JSON-friendly representation of the input object.
+    """
 
     if isinstance(value, Enum):
         return value.value
@@ -32,7 +41,14 @@ def to_serializable(value: Any, *, include_arrays: bool = True) -> Any:
 
 
 def from_serializable_array(value: Any, *, dtype: str | None = None) -> np.ndarray:
-    """Convert a serialized sequence back into a numpy array."""
+    """Convert serialized array content back into a numpy array.
+
+    Args:
+        value: Serialized array-like payload.
+        dtype: Optional dtype override.
+
+    Returns:
+        np.ndarray: Reconstructed numpy array.
+    """
 
     return np.asarray(value, dtype=dtype)
-

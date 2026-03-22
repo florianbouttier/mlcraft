@@ -17,7 +17,17 @@ def _extract_body(html: str) -> str:
 
 
 class FullReportBuilder:
-    """Combine multiple result types into one standalone HTML report."""
+    """Combine evaluation, tuning, and SHAP sections into one report.
+
+    The builder reuses the specialized renderers for each result type and
+    merges only the HTML bodies, which keeps section-specific logic isolated.
+
+    Example:
+        >>> builder = FullReportBuilder()
+        >>> html = builder.build(evaluation=evaluation_result)
+        >>> "Evaluation" in html
+        True
+    """
 
     def __init__(self) -> None:
         self.evaluation_renderer = EvaluationReportRenderer()
@@ -25,6 +35,23 @@ class FullReportBuilder:
         self.shap_renderer = ShapReportRenderer()
 
     def build(self, *, evaluation=None, tuning=None, shap=None, output_path=None) -> str:
+        """Render a combined HTML report.
+
+        Args:
+            evaluation: Optional evaluation result to include.
+            tuning: Optional tuning result to include.
+            shap: Optional SHAP result to include.
+            output_path: Optional file path used to persist the report.
+
+        Returns:
+            str: Standalone HTML document containing all requested sections.
+
+        Example:
+            >>> html = FullReportBuilder().build(evaluation=evaluation_result)
+            >>> "mlcraft Full Report" in html
+            True
+        """
+
         sections = ["<h1>mlcraft Full Report</h1>"]
         if evaluation is not None:
             sections.append("<section><h2>Evaluation</h2>")

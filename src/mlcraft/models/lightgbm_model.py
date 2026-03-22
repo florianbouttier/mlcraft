@@ -12,6 +12,8 @@ from mlcraft.utils.optional import optional_import
 
 
 class LightGBMModel(BaseGBMModel):
+    """Wrap LightGBM behind the shared `BaseGBMModel` interface."""
+
     backend_name = "lightgbm"
 
     def _default_model_params(self) -> dict[str, Any]:
@@ -53,4 +55,3 @@ class LightGBMModel(BaseGBMModel):
 
     def _predict_backend(self, X, *, metadata=None):
         return self.model_.predict(X)
-

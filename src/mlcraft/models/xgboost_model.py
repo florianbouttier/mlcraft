@@ -12,6 +12,8 @@ from mlcraft.utils.optional import optional_import
 
 
 class XGBoostModel(BaseGBMModel):
+    """Wrap XGBoost behind the shared `BaseGBMModel` interface."""
+
     backend_name = "xgboost"
 
     def _default_model_params(self) -> dict[str, Any]:
@@ -54,4 +56,3 @@ class XGBoostModel(BaseGBMModel):
         xgb = optional_import("xgboost", extra_name="xgboost")
         dmatrix = xgb.DMatrix(X)
         return self.model_.predict(dmatrix)
-

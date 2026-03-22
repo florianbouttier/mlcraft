@@ -21,7 +21,24 @@ def _resolve_test_count(n_samples: int, test_size: float | int) -> int:
 
 
 def train_test_split_random(data, y=None, *, test_size=0.2, random_state=None, shuffle=True):
-    """Random train/test split for arrays or columnar mappings."""
+    """Split data randomly into train and test partitions.
+
+    Args:
+        data: Feature data as a column mapping or 2D array.
+        y: Optional target array of shape `(n_samples,)`.
+        test_size: Test set size as a float ratio or an absolute row count.
+        random_state: Optional random seed or generator.
+        shuffle: Whether to shuffle rows before splitting.
+
+    Returns:
+        tuple: `(X_train, X_test)` when `y` is omitted, otherwise
+        `(X_train, X_test, y_train, y_test)`.
+
+    Example:
+        >>> X_train, X_test, y_train, y_test = train_test_split_random(X, y, test_size=0.2, random_state=7)
+        >>> len(y_train) + len(y_test) == len(y)
+        True
+    """
 
     columnar = ensure_columnar_data(data) if not isinstance(data, np.ndarray) else data
     n_samples = len(next(iter(columnar.values()))) if isinstance(columnar, dict) else columnar.shape[0]
@@ -41,7 +58,24 @@ def train_test_split_random(data, y=None, *, test_size=0.2, random_state=None, s
 
 
 def train_test_split_time(data, y=None, *, time_column, test_size=0.2, ascending=True):
-    """Date-based train/test split where test is always the most recent chunk."""
+    """Split data chronologically with the newest rows in the test set.
+
+    Args:
+        data: Feature data as a column mapping or 2D array.
+        y: Optional target array of shape `(n_samples,)`.
+        time_column: Column name or array index containing the ordering key.
+        test_size: Test set size as a float ratio or an absolute row count.
+        ascending: Whether older rows come first in the ordering.
+
+    Returns:
+        tuple: `(X_train, X_test)` when `y` is omitted, otherwise
+        `(X_train, X_test, y_train, y_test)`.
+
+    Example:
+        >>> X_train, X_test, y_train, y_test = train_test_split_time(X, y, time_column="date", test_size=0.2)
+        >>> len(y_train) + len(y_test) == len(y)
+        True
+    """
 
     if isinstance(data, np.ndarray):
         if not isinstance(time_column, int):
@@ -63,4 +97,3 @@ def train_test_split_time(data, y=None, *, time_column, test_size=0.2, ascending
         return X_train, X_test
     y_array = np.asarray(y)
     return X_train, X_test, y_array[train_idx], y_array[test_idx]
-

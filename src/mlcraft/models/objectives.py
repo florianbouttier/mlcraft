@@ -7,7 +7,15 @@ from mlcraft.metrics.registry import MetricRegistry, default_metric_registry
 
 
 def resolve_backend_objective(backend: str, task_spec: TaskSpec) -> str:
-    """Map a TaskSpec to the backend-native objective/loss name."""
+    """Map a task specification to the backend-native objective.
+
+    Args:
+        backend: Backend name such as `xgboost`.
+        task_spec: Shared task specification.
+
+    Returns:
+        str: Backend-native objective or loss name.
+    """
 
     mapping = {
         "xgboost": {
@@ -35,18 +43,33 @@ def resolve_backend_metric(
     *,
     metric_registry: MetricRegistry | None = None,
 ) -> str | None:
-    """Resolve the native metric name for the TaskSpec evaluation metric."""
+    """Resolve the backend-native alias for the canonical evaluation metric.
+
+    Args:
+        backend: Backend name such as `xgboost`.
+        task_spec: Shared task specification.
+        metric_registry: Optional metric registry override.
+
+    Returns:
+        str | None: Backend-native metric alias when available.
+    """
 
     registry = metric_registry or default_metric_registry
     return registry.backend_name(task_spec.eval_metric, backend)
 
 
 def backend_seed_key(backend: str) -> str:
-    """Return the seed parameter key for a backend."""
+    """Return the random seed parameter name expected by a backend.
+
+    Args:
+        backend: Backend name such as `xgboost`.
+
+    Returns:
+        str: Backend-native parameter key for random seed control.
+    """
 
     return {
         "xgboost": "seed",
         "lightgbm": "seed",
         "catboost": "random_seed",
     }[backend]
-

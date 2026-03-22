@@ -32,7 +32,12 @@ BASE_TEMPLATE = """
 
 
 def make_environment():
-    """Create a minimal Jinja environment."""
+    """Create the shared Jinja environment used by HTML renderers.
+
+    Returns:
+        Environment: Configured Jinja environment with the base template
+        registered in memory.
+    """
 
     from jinja2 import DictLoader, Environment, select_autoescape
 
@@ -45,7 +50,14 @@ def make_environment():
 
 
 def figure_to_data_uri(figure) -> str:
-    """Encode a matplotlib figure as a data URI."""
+    """Encode a matplotlib figure as a PNG data URI.
+
+    Args:
+        figure: Matplotlib figure instance to encode.
+
+    Returns:
+        str: `data:` URI that can be embedded directly into HTML.
+    """
 
     buffer = io.BytesIO()
     figure.tight_layout()
@@ -56,7 +68,15 @@ def figure_to_data_uri(figure) -> str:
 
 
 def wrap_html(title: str, body: str) -> str:
-    """Wrap a rendered body into the base HTML shell."""
+    """Wrap rendered HTML fragments into the shared document shell.
+
+    Args:
+        title: Document title.
+        body: Pre-rendered HTML body content.
+
+    Returns:
+        str: Standalone HTML document.
+    """
 
     env = make_environment()
     template = env.get_template("base.html")

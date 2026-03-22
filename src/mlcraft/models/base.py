@@ -16,7 +16,12 @@ from mlcraft.utils.logging import inject_logger
 
 
 class BaseGBMModel(ABC):
-    """Shared behavior for gradient boosting wrappers."""
+    """Define the shared contract for gradient boosting wrappers.
+
+    Subclasses only implement backend-specific fitting and prediction. The
+    base class owns schema inference, feature adaptation, task propagation,
+    and the public prediction interface.
+    """
 
     backend_name: str = "base"
 
@@ -54,6 +59,28 @@ class BaseGBMModel(ABC):
         exposure=None,
         eval_set=None,
     ) -> "BaseGBMModel":
+        """Fit the model on training data.
+
+        Args:
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping of 1D arrays.
+            y: Target array of shape `(n_samples,)`.
+            sample_weight: Optional per-row weights.
+            exposure: Optional exposure vector of shape `(n_samples,)` used in
+                Poisson workflows.
+            eval_set: Optional validation set used for early stopping. Each
+                item is `(X_val, y_val)` or `(X_val, y_val, exposure_val)`.
+
+        Returns:
+            BaseGBMModel: Fitted model instance.
+
+        Example:
+            >>> model = ModelFactory.create("xgboost", task_spec=TaskSpec(task_type="regression"))
+            >>> fitted = model.fit(X_train, y_train)
+            >>> fitted is model
+            True
+        """
+
         y_array = np.asarray(y)
         self.schema_ = infer_schema(X)
         self.adapter_ = fit_feature_adapter(X, self.schema_, config=FeatureAdapterConfig())
@@ -70,18 +97,57 @@ class BaseGBMModel(ABC):
         return self
 
     def predict(self, X, *, exposure=None) -> np.ndarray:
+        """Predict labels, values, or rates for new data.
+
+        Args:
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping.
+            exposure: Optional exposure vector used for Poisson workflows.
+
+        Returns:
+            np.ndarray: Prediction array of shape `(n_samples,)`.
+        """
+
         scores = self._predict_scores(X, exposure=exposure)
         if self.task_spec.task_type == TaskType.CLASSIFICATION:
             return (scores >= 0.5).astype(int)
         return scores
 
     def predict_proba(self, X, *, exposure=None) -> np.ndarray:
+        """Predict class probabilities for binary classification tasks.
+
+        Args:
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping.
+            exposure: Optional exposure vector. Ignored for classification.
+
+        Returns:
+            np.ndarray: Probability matrix of shape `(n_samples, 2)`.
+
+        Raises:
+            ValueError: If the task is not binary classification.
+        """
+
         if self.task_spec.task_type != TaskType.CLASSIFICATION:
             raise ValueError("predict_proba is only available for classification tasks.")
         scores = self._predict_scores(X, exposure=exposure)
         return np.column_stack([1.0 - scores, scores])
 
     def predict_bundle(self, X, *, name: str = "prediction", task_spec: TaskSpec | None = None, exposure=None) -> PredictionBundle:
+        """Build a `PredictionBundle` from model outputs.
+
+        Args:
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping.
+            name: Label attached to the prediction bundle.
+            task_spec: Optional task specification override.
+            exposure: Optional exposure vector used for Poisson workflows.
+
+        Returns:
+            PredictionBundle: Bundle containing predictions and optional
+            probabilities.
+        """
+
         resolved_task = resolve_task_spec(task_spec, self)
         if resolved_task is None:
             raise ValueError("A TaskSpec is required to build a PredictionBundle.")
@@ -90,6 +156,12 @@ class BaseGBMModel(ABC):
         return PredictionBundle(name=name, y_pred=y_pred, y_score=scores if resolved_task.task_type == TaskType.CLASSIFICATION else None, task_spec=resolved_task)
 
     def get_params(self) -> dict[str, Any]:
+        """Return the public model configuration.
+
+        Returns:
+            dict[str, Any]: Serializable configuration payload.
+        """
+
         return {
             "task_spec": self.task_spec.to_dict(),
             "model_params": dict(self.model_params),
@@ -98,6 +170,16 @@ class BaseGBMModel(ABC):
         }
 
     def set_params(self, **params) -> "BaseGBMModel":
+        """Update public model parameters in place.
+
+        Args:
+            **params: Parameter overrides. Unknown keys are forwarded to
+                `model_params`.
+
+        Returns:
+            BaseGBMModel: Updated model instance.
+        """
+
         if "task_spec" in params:
             value = params.pop("task_spec")
             self.task_spec = value if isinstance(value, TaskSpec) else TaskSpec(**value)
@@ -111,6 +193,18 @@ class BaseGBMModel(ABC):
         return self
 
     def transform_features(self, X, *, exposure=None) -> tuple[np.ndarray, dict[str, Any]]:
+        """Transform raw features using the fitted adapter.
+
+        Args:
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping.
+            exposure: Optional exposure vector used for Poisson workflows.
+
+        Returns:
+            tuple[np.ndarray, dict[str, Any]]: Backend-ready feature matrix and
+            backend-specific metadata.
+        """
+
         return self._transform_features(X, exposure=exposure)
 
     def _transform_features(self, X, *, exposure=None) -> tuple[np.ndarray, dict[str, Any]]:

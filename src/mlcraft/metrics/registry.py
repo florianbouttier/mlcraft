@@ -10,6 +10,8 @@ from mlcraft.metrics import classification, poisson, regression
 
 @dataclass(frozen=True)
 class MetricDefinition:
+    """Describe one canonical metric and its backend mappings."""
+
     name: str
     function: Callable[..., float]
     higher_is_better: bool
@@ -17,11 +19,30 @@ class MetricDefinition:
     prediction_kind: str = "pred"
 
     def to_score(self, value: float) -> float:
+        """Convert a raw metric value into a score that must be maximized.
+
+        Args:
+            value: Raw metric value in its natural direction.
+
+        Returns:
+            float: Optimization score where higher is always better.
+        """
+
         return float(value if self.higher_is_better else -value)
 
 
 class MetricRegistry:
-    """Registry mapping user-friendly metric names to internal definitions."""
+    """Map canonical metric names to implementations and backend aliases.
+
+    Args:
+        definitions: Optional initial metric definitions to register.
+
+    Example:
+        >>> registry = MetricRegistry()
+        >>> registry.register(MetricDefinition("rmse", lambda y_true, y_pred, **_: 0.5, False, {}))
+        >>> registry.score("rmse", 0.5)
+        -0.5
+    """
 
     def __init__(self, definitions: list[MetricDefinition] | None = None) -> None:
         self._definitions: dict[str, MetricDefinition] = {}
@@ -29,18 +50,59 @@ class MetricRegistry:
             self.register(definition)
 
     def register(self, definition: MetricDefinition) -> None:
+        """Register one metric definition.
+
+        Args:
+            definition: Metric definition to store under its canonical name.
+        """
+
         self._definitions[definition.name] = definition
 
     def get(self, name: str) -> MetricDefinition:
+        """Return the definition registered under one canonical name.
+
+        Args:
+            name: Canonical metric name.
+
+        Returns:
+            MetricDefinition: Registered metric definition.
+        """
+
         return self._definitions[name]
 
     def names(self) -> list[str]:
+        """Return all registered metric names.
+
+        Returns:
+            list[str]: Sorted canonical metric names.
+        """
+
         return sorted(self._definitions.keys())
 
     def backend_name(self, name: str, backend: str) -> str | None:
+        """Return the backend-native alias for one metric.
+
+        Args:
+            name: Canonical metric name.
+            backend: Backend name such as `xgboost`.
+
+        Returns:
+            str | None: Backend-native metric alias when defined.
+        """
+
         return self.get(name).backend_names.get(backend)
 
     def score(self, name: str, value: float) -> float:
+        """Convert a raw metric value into an optimization score.
+
+        Args:
+            name: Canonical metric name.
+            value: Raw metric value.
+
+        Returns:
+            float: Maximization-oriented score.
+        """
+
         return self.get(name).to_score(value)
 
     def evaluate(
@@ -54,6 +116,22 @@ class MetricRegistry:
         exposure=None,
         **options: Any,
     ) -> tuple[float, float]:
+        """Evaluate one metric and return both value and optimization score.
+
+        Args:
+            name: Canonical metric name.
+            y_true: Ground-truth array of shape `(n_samples,)`.
+            y_pred: Optional prediction array of shape `(n_samples,)`.
+            y_score: Optional score or probability array of shape
+                `(n_samples,)`.
+            sample_weight: Optional per-row weights.
+            exposure: Optional exposure vector for Poisson metrics.
+            **options: Additional keyword arguments forwarded to the metric.
+
+        Returns:
+            tuple[float, float]: Raw metric value and its maximization score.
+        """
+
         definition = self.get(name)
         value = definition.function(
             y_true,

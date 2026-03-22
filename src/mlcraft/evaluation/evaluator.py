@@ -14,7 +14,23 @@ from mlcraft.utils.logging import get_logger, inject_logger
 
 
 class Evaluator:
-    """Evaluate one or multiple predictions against a single ground truth."""
+    """Evaluate one or more prediction bundles against shared targets.
+
+    The evaluator is backend-agnostic. It relies on the canonical metric
+    registry and on `TaskSpec` so users can compare models without worrying
+    about backend-specific metric names.
+
+    Args:
+        metric_registry: Optional metric registry override.
+        logger: Optional custom logger.
+
+    Example:
+        >>> task = TaskSpec(task_type="classification")
+        >>> bundle = PredictionBundle(name="gbm", y_pred=[0, 1], y_score=[0.2, 0.8], task_spec=task)
+        >>> result = Evaluator().evaluate([0, 1], bundle)
+        >>> result.metrics_by_prediction()["gbm"]["roc_auc"]
+        1.0
+    """
 
     def __init__(self, metric_registry: MetricRegistry | None = None, logger=None) -> None:
         self.metric_registry = metric_registry or default_metric_registry
@@ -31,6 +47,35 @@ class Evaluator:
         metric_names=None,
         metric_options=None,
     ) -> EvaluationResult:
+        """Evaluate predictions against one ground-truth vector.
+
+        Args:
+            y_true: Ground-truth array of shape `(n_samples,)`.
+            predictions: One `PredictionBundle` or an iterable of bundles.
+            task_spec: Optional task specification injected when bundles do not
+                already carry one.
+            sample_weight: Optional per-row weights of shape `(n_samples,)`.
+            exposure: Optional exposure vector of shape `(n_samples,)` for
+                Poisson evaluation.
+            metric_names: Optional list of canonical metric names to compute.
+            metric_options: Optional per-metric keyword arguments.
+
+        Returns:
+            EvaluationResult: Structured metrics and plot-ready curves for all
+            evaluated prediction bundles.
+
+        Raises:
+            ValueError: If no predictions are provided or no task
+                specification can be resolved.
+
+        Example:
+            >>> task = TaskSpec(task_type="regression")
+            >>> bundle = PredictionBundle(name="baseline", y_pred=[1.0, 2.0], task_spec=task)
+            >>> result = Evaluator().evaluate([1.2, 1.8], bundle)
+            >>> "rmse" in result.metrics_by_prediction()["baseline"]
+            True
+        """
+
         y_true_array = np.asarray(y_true)
         bundles = [predictions] if isinstance(predictions, PredictionBundle) else list(predictions)
         if not bundles:
@@ -102,4 +147,3 @@ class Evaluator:
         else:
             curves.append(residual_distribution_data(y_true, y_pred))
         return curves
-

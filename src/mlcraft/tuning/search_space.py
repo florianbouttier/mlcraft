@@ -11,7 +11,16 @@ SearchSpaceSpec = dict[str, dict[str, Any]]
 
 
 def default_search_space(model_type: str, task_spec: TaskSpec) -> SearchSpaceSpec:
-    """Return a small but practical default search space per backend."""
+    """Return the default Optuna search space for one backend and task.
+
+    Args:
+        model_type: Canonical backend name such as `xgboost`.
+        task_spec: Shared task specification.
+
+    Returns:
+        SearchSpaceSpec: Declarative search space compatible with
+        `suggest_params`.
+    """
 
     common = {
         "learning_rate": {"type": "float", "low": 0.01, "high": 0.3, "log": True},
@@ -47,7 +56,15 @@ def default_search_space(model_type: str, task_spec: TaskSpec) -> SearchSpaceSpe
 
 
 def merge_search_spaces(base: SearchSpaceSpec, override: SearchSpaceSpec | None = None) -> SearchSpaceSpec:
-    """Merge a default search space with user overrides."""
+    """Merge a default search space with user overrides.
+
+    Args:
+        base: Default search space.
+        override: Optional user-provided override space.
+
+    Returns:
+        SearchSpaceSpec: Merged search space.
+    """
 
     result = deepcopy(base)
     for key, value in (override or {}).items():
@@ -56,7 +73,15 @@ def merge_search_spaces(base: SearchSpaceSpec, override: SearchSpaceSpec | None 
 
 
 def suggest_params(trial, search_space: SearchSpaceSpec) -> dict[str, Any]:
-    """Suggest parameter values from a declarative search space."""
+    """Suggest trial parameters from a declarative search space.
+
+    Args:
+        trial: Optuna trial object.
+        search_space: Declarative search space specification.
+
+    Returns:
+        dict[str, Any]: Concrete parameter values for the current trial.
+    """
 
     params: dict[str, Any] = {}
     for name, spec in search_space.items():
@@ -70,4 +95,3 @@ def suggest_params(trial, search_space: SearchSpaceSpec) -> dict[str, Any]:
         else:
             raise ValueError(f"Unsupported search space type: {kind}")
     return params
-

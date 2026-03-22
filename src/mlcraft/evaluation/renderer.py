@@ -9,9 +9,30 @@ from mlcraft.reporting.html import figure_to_data_uri, wrap_html
 
 
 class EvaluationReportRenderer:
-    """Render an EvaluationResult as a standalone HTML document."""
+    """Render an evaluation result as standalone HTML.
+
+    The renderer keeps plotting and templating separate from metric
+    computation so `EvaluationResult` stays lightweight and serializable.
+    """
 
     def render(self, result: EvaluationResult, *, title: str = "mlcraft Evaluation Report", output_path=None) -> str:
+        """Render a complete evaluation report.
+
+        Args:
+            result: Evaluation output to render.
+            title: Title displayed in the HTML document.
+            output_path: Optional file path used to persist the rendered HTML.
+
+        Returns:
+            str: Standalone HTML document.
+
+        Example:
+            >>> renderer = EvaluationReportRenderer()
+            >>> html = renderer.render(result)
+            >>> html.startswith("<!doctype html>")
+            True
+        """
+
         import matplotlib.pyplot as plt
 
         metrics_by_prediction = defaultdict(list)

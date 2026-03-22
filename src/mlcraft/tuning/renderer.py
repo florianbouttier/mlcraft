@@ -7,9 +7,20 @@ from mlcraft.reporting.html import figure_to_data_uri, wrap_html
 
 
 class TuningReportRenderer:
-    """Render a TuningResult as HTML."""
+    """Render a tuning result as standalone HTML."""
 
     def render(self, result: TuningResult, *, title: str = "mlcraft Tuning Report", output_path=None) -> str:
+        """Render a complete tuning report.
+
+        Args:
+            result: Tuning output to render.
+            title: Title displayed in the HTML document.
+            output_path: Optional file path used to persist the rendered HTML.
+
+        Returns:
+            str: Standalone HTML document.
+        """
+
         import matplotlib.pyplot as plt
 
         sections = [f"<h1>{title}</h1>"]

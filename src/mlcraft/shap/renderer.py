@@ -9,9 +9,21 @@ from mlcraft.reporting.html import figure_to_data_uri, wrap_html
 
 
 class ShapReportRenderer:
-    """Render SHAP results with lightweight matplotlib plots."""
+    """Render SHAP artifacts with lightweight matplotlib plots."""
 
     def render(self, result: ShapResult, *, title: str = "mlcraft SHAP Report", output_path=None, top_n: int = 10) -> str:
+        """Render a complete SHAP report.
+
+        Args:
+            result: SHAP output to render.
+            title: Title displayed in the HTML document.
+            output_path: Optional file path used to persist the rendered HTML.
+            top_n: Number of top features to keep in summary plots.
+
+        Returns:
+            str: Standalone HTML document.
+        """
+
         import matplotlib.pyplot as plt
 
         sections = [f"<h1>{title}</h1>"]

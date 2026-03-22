@@ -14,6 +14,19 @@ from mlcraft.data.detection import is_na_mask
 
 @dataclass
 class FeatureAdapterConfig:
+    """Configure how columnar features are converted for model backends.
+
+    Args:
+        feature_order: Optional explicit feature order. Defaults to schema
+            order when omitted.
+        categorical_missing_token: Placeholder used for missing categorical
+            values during encoding.
+        numeric_missing_value: Reserved numeric missing value placeholder.
+        categorical_unknown_value: Code assigned to unseen categorical values.
+        datetime_unit: Datetime precision used when datetimes are converted to
+            integer timestamps.
+    """
+
     feature_order: list[str] | None = None
     categorical_missing_token: str = "__MISSING__"
     numeric_missing_value: float = np.nan
@@ -23,6 +36,17 @@ class FeatureAdapterConfig:
 
 @dataclass
 class FittedFeatureAdapter:
+    """Store a fitted feature adapter ready to transform new data.
+
+    Args:
+        schema: Schema describing the source columns.
+        config: Adapter configuration used during fitting.
+        feature_order: Stable feature order used during transformation.
+        categorical_maps: Encodings learned for categorical columns.
+        categorical_indices: Feature indices treated as categorical by
+            CatBoost.
+    """
+
     schema: DataSchema
     config: FeatureAdapterConfig
     feature_order: list[str]
@@ -36,6 +60,19 @@ class FittedFeatureAdapter:
         backend: str | None = None,
         exposure: np.ndarray | None = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
+        """Transform raw features with the fitted adapter.
+
+        Args:
+            data: Column mapping or 2D array to transform.
+            backend: Optional backend name used to adjust categorical handling.
+            exposure: Optional exposure vector appended as log-exposure for
+                Poisson workflows.
+
+        Returns:
+            tuple[np.ndarray, dict[str, Any]]: Transformed feature matrix of
+            shape `(n_samples, n_features)` and backend-specific metadata.
+        """
+
         return transform_feature_data(data, self, backend=backend, exposure=exposure)
 
 
@@ -71,7 +108,24 @@ def fit_feature_adapter(
     *,
     config: FeatureAdapterConfig | None = None,
 ) -> FittedFeatureAdapter:
-    """Fit categorical encodings and keep a stable feature order."""
+    """Fit a feature adapter from schema-aware columnar data.
+
+    Args:
+        data: Column mapping or 2D array used to learn categorical encodings.
+        schema: Dataset schema aligned with `data`.
+        config: Optional adapter configuration overrides.
+
+    Returns:
+        FittedFeatureAdapter: Adapter carrying feature order and categorical
+        encodings.
+
+    Example:
+        >>> X = {"city": np.array(["Paris", "Lyon"], dtype=object)}
+        >>> schema = infer_schema(X)
+        >>> adapter = fit_feature_adapter(X, schema)
+        >>> adapter.feature_order
+        ['city']
+    """
 
     columnar = ensure_columnar_data(data)
     cfg = config or FeatureAdapterConfig()
@@ -106,7 +160,19 @@ def transform_feature_data(
     backend: str | None = None,
     exposure: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    """Transform feature data for the target backend."""
+    """Transform features for a target backend.
+
+    Args:
+        data: Column mapping or 2D array to transform.
+        fitted: Fitted adapter holding feature order and encodings.
+        backend: Optional backend name. `catboost` keeps native categorical
+            columns, while other backends receive numeric encodings.
+        exposure: Optional exposure vector appended as log-exposure.
+
+    Returns:
+        tuple[np.ndarray, dict[str, Any]]: Transformed feature matrix of shape
+        `(n_samples, n_features)` and backend-specific metadata.
+    """
 
     columnar = ensure_columnar_data(data)
     numeric_columns: list[np.ndarray] = []

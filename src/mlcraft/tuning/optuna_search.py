@@ -18,7 +18,33 @@ from mlcraft.utils.optional import optional_import
 
 
 class OptunaSearch:
-    """Bayesian hyperparameter search with a validation-overfit penalty."""
+    """Run Optuna search with a validation-overfitting penalty.
+
+    The search always maximizes an internal score. Metrics that are naturally
+    minimized are negated first, then penalized with
+    `val_score - alpha * abs(train_score - val_score)`.
+
+    Args:
+        task_spec: Shared task specification for the tuning run.
+        model_type: Canonical backend name such as `xgboost`.
+        n_trials: Number of Optuna trials to execute.
+        cv: Number of folds when no custom splitter is provided.
+        cv_splitter: Optional custom splitter implementing `split`.
+        alpha: Overfitting penalty applied to the validation score.
+        random_state: Optional random seed used by Optuna and the splitters.
+        model_params: Optional fixed backend-native model parameters.
+        fit_params: Optional fixed backend-native fit parameters.
+        search_space: Optional search space overrides.
+        report_options: Optional report rendering preferences kept for later
+            use.
+        metric_registry: Optional custom metric registry.
+        logger: Optional custom logger.
+
+    Example:
+        >>> search = OptunaSearch(task_spec=TaskSpec(task_type="classification"), model_type="xgboost", n_trials=10)
+        >>> search.alpha
+        0.0
+    """
 
     def __init__(
         self,
@@ -52,6 +78,27 @@ class OptunaSearch:
         self.logger = inject_logger(logger, "tuning")
 
     def run(self, X, y, *, sample_weight=None, exposure=None) -> TuningResult:
+        """Execute the Optuna study and return structured results.
+
+        Args:
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping.
+            y: Target array of shape `(n_samples,)`.
+            sample_weight: Optional per-row weights.
+            exposure: Optional exposure vector of shape `(n_samples,)` for
+                Poisson workflows.
+
+        Returns:
+            TuningResult: Structured search output containing the best trial,
+            trial history, and fold aggregates.
+
+        Example:
+            >>> search = OptunaSearch(task_spec=TaskSpec(task_type="regression"), model_type="xgboost", n_trials=5, cv=3)
+            >>> result = search.run(X_train, y_train)
+            >>> isinstance(result.best_params, dict)
+            True
+        """
+
         optuna = optional_import("optuna", extra_name="tuning")
         metric_name = self.task_spec.eval_metric
         splitter = resolve_cv_splitter(
@@ -163,4 +210,3 @@ class OptunaSearch:
             metadata={"model_type": self.model_type, "n_trials": self.n_trials},
             study=study,
         )
-

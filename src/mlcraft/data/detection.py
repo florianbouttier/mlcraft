@@ -10,7 +10,15 @@ from mlcraft.core.schema import ColumnDType
 
 
 def is_na_mask(values: np.ndarray) -> np.ndarray:
-    """Return a boolean mask for missing values without coercing the full dtype."""
+    """Return a missing-value mask without coercing the whole array.
+
+    Args:
+        values: Column values to inspect.
+
+    Returns:
+        np.ndarray: Boolean mask of shape `(n_samples,)` where `True` marks a
+        missing value.
+    """
 
     array = np.asarray(values)
     if array.dtype.kind == "f":
@@ -33,7 +41,14 @@ def is_na_mask(values: np.ndarray) -> np.ndarray:
 
 
 def infer_cardinality(values: np.ndarray) -> int:
-    """Return the number of unique non-missing values."""
+    """Return the number of distinct non-missing values.
+
+    Args:
+        values: Column values to inspect.
+
+    Returns:
+        int: Number of unique non-missing values.
+    """
 
     array = np.asarray(values)
     mask = ~is_na_mask(array)
@@ -50,7 +65,17 @@ def _all_instances(values: np.ndarray, expected: type) -> bool:
 
 
 def detect_datetime_like(values: np.ndarray, *, sample_size: int = 50, min_success_ratio: float = 0.8) -> bool:
-    """Detect simple datetime-like arrays, including object arrays containing ISO-like strings."""
+    """Detect simple datetime-like columns.
+
+    Args:
+        values: Non-missing values to inspect.
+        sample_size: Maximum number of values sampled for string parsing.
+        min_success_ratio: Minimum parse success ratio required to classify
+            the column as datetime-like.
+
+    Returns:
+        bool: `True` when the column looks like datetime data.
+    """
 
     array = np.asarray(values)
     if array.dtype.kind == "M":
@@ -84,7 +109,18 @@ def detect_categorical_like(
     max_unique_ratio: float = 0.05,
     infer_numeric: bool = False,
 ) -> bool:
-    """Detect categorical-like arrays using simple cardinality rules."""
+    """Detect categorical-like columns using simple heuristics.
+
+    Args:
+        values: Non-missing values to inspect.
+        max_cardinality: Maximum unique count used by the heuristic.
+        max_unique_ratio: Maximum unique ratio used by the heuristic.
+        infer_numeric: Whether integer-like columns may be treated as
+            categorical.
+
+    Returns:
+        bool: `True` when the column should be interpreted as categorical.
+    """
 
     array = np.asarray(values)
     mask = ~is_na_mask(array)
@@ -114,7 +150,25 @@ def infer_primitive_dtype(
     categorical_max_ratio: float = 0.05,
     categorical_infer_numeric: bool = False,
 ) -> ColumnDType:
-    """Infer the semantic dtype of a column from its non-missing values."""
+    """Infer the semantic dtype of a column from observed values.
+
+    Missing values are ignored for type detection so sparse numeric columns
+    keep their intended dtype instead of collapsing to generic categorical
+    object columns.
+
+    Args:
+        values: Column values to inspect.
+        datetime_detection_enabled: Whether datetime heuristics are enabled.
+        categorical_max_cardinality: Maximum unique count used by categorical
+            heuristics.
+        categorical_max_ratio: Maximum unique ratio used by categorical
+            heuristics.
+        categorical_infer_numeric: Whether low-cardinality integer columns may
+            be treated as categorical.
+
+    Returns:
+        ColumnDType: Inferred semantic dtype.
+    """
 
     array = np.asarray(values)
     mask = ~is_na_mask(array)

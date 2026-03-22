@@ -12,6 +12,8 @@ from mlcraft.utils.optional import optional_import
 
 
 class CatBoostModel(BaseGBMModel):
+    """Wrap CatBoost behind the shared `BaseGBMModel` interface."""
+
     backend_name = "catboost"
 
     def _default_model_params(self) -> dict[str, Any]:
@@ -54,4 +56,3 @@ class CatBoostModel(BaseGBMModel):
             proba = self.model_.predict_proba(X)
             return np.asarray(proba)[:, 1]
         return np.asarray(self.model_.predict(X), dtype=float).reshape(-1)
-

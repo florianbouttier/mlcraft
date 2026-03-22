@@ -30,7 +30,23 @@ def configure_logging(
     handler: logging.Handler | None = None,
     fmt: str | None = None,
 ) -> logging.Logger:
-    """Configure and return a package logger."""
+    """Configure and return a package logger.
+
+    Args:
+        verbose: Verbosity level from 0 to 3.
+        logger_name: Logger name to configure.
+        logger: Optional existing logger instance to configure.
+        handler: Optional handler to attach when the logger has none yet.
+        fmt: Optional log format override.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+
+    Example:
+        >>> logger = configure_logging(verbose=1)
+        >>> logger.name
+        'mlcraft'
+    """
 
     target = logger or logging.getLogger(logger_name)
     target.setLevel(_resolve_level(verbose))
@@ -44,7 +60,14 @@ def configure_logging(
 
 
 def get_logger(name: str | None = None) -> logging.Logger:
-    """Return a logger inside the package namespace."""
+    """Return a logger inside the package namespace.
+
+    Args:
+        name: Optional sub-logger name.
+
+    Returns:
+        logging.Logger: Package-level logger or child logger.
+    """
 
     if not name:
         return logging.getLogger(PACKAGE_LOGGER_NAME)
@@ -54,7 +77,15 @@ def get_logger(name: str | None = None) -> logging.Logger:
 
 
 def set_verbosity(verbose: int = 0, *, logger_name: str = PACKAGE_LOGGER_NAME) -> logging.Logger:
-    """Update the level of an existing logger and its handlers."""
+    """Update the verbosity of an existing logger.
+
+    Args:
+        verbose: Verbosity level from 0 to 3.
+        logger_name: Logger name to update.
+
+    Returns:
+        logging.Logger: Updated logger instance.
+    """
 
     logger = logging.getLogger(logger_name)
     level = _resolve_level(verbose)
@@ -65,17 +96,30 @@ def set_verbosity(verbose: int = 0, *, logger_name: str = PACKAGE_LOGGER_NAME) -
 
 
 def inject_logger(logger: logging.Logger | None, name: str | None = None) -> logging.Logger:
-    """Return a custom logger or fall back to a package logger."""
+    """Return a custom logger or a package logger fallback.
+
+    Args:
+        logger: Optional externally managed logger.
+        name: Optional package sub-logger name when no custom logger is given.
+
+    Returns:
+        logging.Logger: Logger ready to use.
+    """
 
     return logger or get_logger(name)
 
 
 def log_kv(logger: logging.Logger, message: str, **kwargs: Any) -> None:
-    """Helper for consistent key-value logging."""
+    """Log a message with optional key-value pairs.
+
+    Args:
+        logger: Logger used for emission.
+        message: Main log message.
+        **kwargs: Additional key-value pairs appended to the message.
+    """
 
     if not kwargs:
         logger.info(message)
         return
     payload = ", ".join(f"{key}={value!r}" for key, value in kwargs.items())
     logger.info("%s | %s", message, payload)
-

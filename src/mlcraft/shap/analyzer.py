@@ -10,12 +10,44 @@ from mlcraft.utils.optional import optional_import
 
 
 class ShapAnalyzer:
-    """Compute SHAP values for fitted tree models."""
+    """Compute SHAP artifacts for fitted tree-based models.
+
+    Args:
+        logger: Optional custom logger.
+
+    Example:
+        >>> analyzer = ShapAnalyzer()
+        >>> analyzer.__class__.__name__
+        'ShapAnalyzer'
+    """
 
     def __init__(self, logger=None) -> None:
         self.logger = inject_logger(logger, "shap")
 
     def compute(self, model, X, *, sample_weight=None, max_samples=None, interaction_values=False) -> ShapResult:
+        """Compute SHAP values for a fitted model and dataset.
+
+        Args:
+            model: Fitted `BaseGBMModel`-compatible wrapper.
+            X: Feature data with shape `(n_samples, n_features)` or a column
+                mapping.
+            sample_weight: Reserved for future weighted explainability
+                strategies.
+            max_samples: Optional cap on the number of explained rows.
+            interaction_values: Whether to compute SHAP interaction values.
+
+        Returns:
+            ShapResult: SHAP values, optional interactions, and derived
+            importance values.
+
+        Raises:
+            OptionalDependencyError: If `shap` is not installed.
+
+        Example:
+            >>> analyzer = ShapAnalyzer()
+            >>> analyzer.compute(model, X_test, max_samples=200)
+        """
+
         shap = optional_import("shap", extra_name="shap")
         matrix, _ = model.transform_features(X)
         feature_names = list(model.adapter_.feature_order)
@@ -44,4 +76,3 @@ class ShapAnalyzer:
             importance=np.asarray(importance),
             metadata={"n_samples": int(np.asarray(shap_values).shape[0])},
         )
-

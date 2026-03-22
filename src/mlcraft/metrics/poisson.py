@@ -28,6 +28,18 @@ def _mean(values: np.ndarray, sample_weight: np.ndarray | None = None) -> float:
 
 
 def poisson_deviance(y_true, y_pred, *, sample_weight=None, exposure=None, **_) -> float:
+    """Compute mean Poisson deviance.
+
+    Args:
+        y_true: Observed counts of shape `(n_samples,)`.
+        y_pred: Predicted rates of shape `(n_samples,)`.
+        sample_weight: Optional per-row weights.
+        exposure: Optional exposure vector of shape `(n_samples,)`.
+
+    Returns:
+        float: Weighted or unweighted Poisson deviance.
+    """
+
     y = np.asarray(y_true, dtype=float)
     mu = _resolve_mu(y_pred, exposure=exposure)
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -38,6 +50,18 @@ def poisson_deviance(y_true, y_pred, *, sample_weight=None, exposure=None, **_) 
 
 
 def mae(y_true, y_pred, *, sample_weight=None, exposure=None, **_) -> float:
+    """Compute mean absolute error for Poisson counts.
+
+    Args:
+        y_true: Observed counts of shape `(n_samples,)`.
+        y_pred: Predicted rates of shape `(n_samples,)`.
+        sample_weight: Optional per-row weights.
+        exposure: Optional exposure vector of shape `(n_samples,)`.
+
+    Returns:
+        float: Weighted or unweighted absolute error on counts.
+    """
+
     y = np.asarray(y_true, dtype=float)
     mu = _resolve_mu(y_pred, exposure=exposure)
     errors = np.abs(y - mu)
@@ -46,6 +70,18 @@ def mae(y_true, y_pred, *, sample_weight=None, exposure=None, **_) -> float:
 
 
 def rmse(y_true, y_pred, *, sample_weight=None, exposure=None, **_) -> float:
+    """Compute root mean squared error for Poisson counts.
+
+    Args:
+        y_true: Observed counts of shape `(n_samples,)`.
+        y_pred: Predicted rates of shape `(n_samples,)`.
+        sample_weight: Optional per-row weights.
+        exposure: Optional exposure vector of shape `(n_samples,)`.
+
+    Returns:
+        float: Weighted or unweighted RMSE on counts.
+    """
+
     y = np.asarray(y_true, dtype=float)
     mu = _resolve_mu(y_pred, exposure=exposure)
     errors = (y - mu) ** 2
@@ -54,18 +90,56 @@ def rmse(y_true, y_pred, *, sample_weight=None, exposure=None, **_) -> float:
 
 
 def observed_mean(y_true, y_pred=None, *, sample_weight=None, exposure=None, **_) -> float:
+    """Compute the observed mean count or rate.
+
+    Args:
+        y_true: Observed counts of shape `(n_samples,)`.
+        y_pred: Unused placeholder kept for registry compatibility.
+        sample_weight: Optional per-row weights.
+        exposure: Optional exposure vector of shape `(n_samples,)`.
+
+    Returns:
+        float: Weighted or unweighted observed mean.
+    """
+
     observed = _observed_rate(y_true, exposure=exposure)
     weights = None if sample_weight is None else np.asarray(sample_weight, dtype=float)
     return _mean(observed, weights)
 
 
 def predicted_mean(y_true, y_pred, *, sample_weight=None, exposure=None, **_) -> float:
+    """Compute the mean predicted rate.
+
+    Args:
+        y_true: Unused placeholder kept for registry compatibility.
+        y_pred: Predicted rates of shape `(n_samples,)`.
+        sample_weight: Optional per-row weights.
+        exposure: Unused placeholder kept for signature consistency.
+
+    Returns:
+        float: Weighted or unweighted mean predicted rate.
+    """
+
     pred = np.asarray(y_pred, dtype=float)
     weights = None if sample_weight is None else np.asarray(sample_weight, dtype=float)
     return _mean(pred, weights)
 
 
 def poisson_calibration_diagnostics(y_true, y_pred, *, exposure=None, n_bins: int = 10, sample_weight=None) -> dict[str, np.ndarray]:
+    """Aggregate Poisson calibration diagnostics by prediction bins.
+
+    Args:
+        y_true: Observed counts of shape `(n_samples,)`.
+        y_pred: Predicted rates of shape `(n_samples,)`.
+        exposure: Optional exposure vector of shape `(n_samples,)`.
+        n_bins: Number of quantile-based bins.
+        sample_weight: Optional per-row weights.
+
+    Returns:
+        dict[str, np.ndarray]: Binned predicted means, observed means, and
+        sample counts.
+    """
+
     pred = np.asarray(y_pred, dtype=float)
     observed = _observed_rate(y_true, exposure=exposure)
     if pred.size == 0:
@@ -93,4 +167,3 @@ def poisson_calibration_diagnostics(y_true, y_pred, *, exposure=None, n_bins: in
         "observed": np.asarray(observed_bins, dtype=float),
         "counts": np.asarray(counts, dtype=int),
     }
-
