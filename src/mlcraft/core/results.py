@@ -124,6 +124,11 @@ class TuningResult:
         fold_summaries: Fold-level aggregates for the winning trial.
         alpha: Penalty factor used in the objective.
         metric_name: Canonical metric optimized by the search.
+        test_metrics: Optional holdout metrics computed with the final model.
+        test_score: Optional normalized score of the optimized metric on the
+            final holdout set.
+        test_evaluation: Optional structured evaluation of the final holdout
+            set.
         metadata: Additional metadata about the search run.
         study: Optional in-memory Optuna study.
     """
@@ -139,6 +144,9 @@ class TuningResult:
     fold_summaries: list[FoldSummary]
     alpha: float = 0.0
     metric_name: str | None = None
+    test_metrics: dict[str, float] | None = None
+    test_score: float | None = None
+    test_evaluation: EvaluationResult | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     study: Any = field(default=None, repr=False, compare=False)
 
@@ -165,6 +173,9 @@ class TuningResult:
             "fold_summaries": to_serializable(self.fold_summaries, include_arrays=include_arrays),
             "alpha": self.alpha,
             "metric_name": self.metric_name,
+            "test_metrics": to_serializable(self.test_metrics, include_arrays=include_arrays),
+            "test_score": self.test_score,
+            "test_evaluation": to_serializable(self.test_evaluation, include_arrays=include_arrays),
             "metadata": to_serializable(self.metadata, include_arrays=include_arrays),
         }
         return payload

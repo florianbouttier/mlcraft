@@ -9,6 +9,7 @@ import numpy as np
 from mlcraft.core.results import FoldSummary, TrialSummary, TuningResult
 from mlcraft.core.task import TaskSpec
 from mlcraft.data.containers import slice_rows
+from mlcraft.evaluation.evaluator import Evaluator
 from mlcraft.metrics.registry import MetricRegistry, default_metric_registry
 from mlcraft.models.factory import ModelFactory
 from mlcraft.split.cv import resolve_cv_splitter
@@ -77,7 +78,18 @@ class OptunaSearch:
         self.metric_registry = metric_registry or default_metric_registry
         self.logger = inject_logger(logger, "tuning")
 
-    def run(self, X, y, *, sample_weight=None, exposure=None) -> TuningResult:
+    def run(
+        self,
+        X,
+        y,
+        *,
+        sample_weight=None,
+        exposure=None,
+        X_test=None,
+        y_test=None,
+        sample_weight_test=None,
+        exposure_test=None,
+    ) -> TuningResult:
         """Execute the Optuna study and return structured results.
 
         Args:
@@ -87,10 +99,17 @@ class OptunaSearch:
             sample_weight: Optional per-row weights.
             exposure: Optional exposure vector of shape `(n_samples,)` for
                 Poisson workflows.
+            X_test: Optional holdout feature data used only for final-model
+                evaluation after tuning.
+            y_test: Optional holdout target array of shape `(n_test_samples,)`.
+            sample_weight_test: Optional holdout weights.
+            exposure_test: Optional holdout exposure vector for Poisson
+                workflows.
 
         Returns:
             TuningResult: Structured search output containing the best trial,
-            trial history, and fold aggregates.
+            trial history, fold aggregates, and optional final holdout
+            evaluation.
 
         Example:
             >>> search = OptunaSearch(task_spec=TaskSpec(task_type="regression"), model_type="xgboost", n_trials=5, cv=3)
@@ -100,6 +119,8 @@ class OptunaSearch:
         """
 
         optuna = optional_import("optuna", extra_name="tuning")
+        if (X_test is None) != (y_test is None):
+            raise ValueError("X_test and y_test must be provided together.")
         metric_name = self.task_spec.eval_metric
         splitter = resolve_cv_splitter(
             self.cv,
@@ -114,6 +135,9 @@ class OptunaSearch:
         y_array = np.asarray(y)
         weight_array = None if sample_weight is None else np.asarray(sample_weight)
         exposure_array = None if exposure is None else np.asarray(exposure)
+        y_test_array = None if y_test is None else np.asarray(y_test)
+        weight_test_array = None if sample_weight_test is None else np.asarray(sample_weight_test)
+        exposure_test_array = None if exposure_test is None else np.asarray(exposure_test)
 
         def objective(trial) -> float:
             params = suggest_params(trial, search_space)
@@ -195,6 +219,41 @@ class OptunaSearch:
         study.optimize(objective, n_trials=self.n_trials)
         best_summary = trial_summaries[study.best_trial.number]
         history = [trial_summaries[index] for index in sorted(trial_summaries)]
+        test_metrics = None
+        test_score = None
+        test_evaluation = None
+
+        if X_test is not None and y_test is not None:
+            final_fit_params = dict(self.fit_params)
+            final_fit_params.pop("early_stopping_rounds", None)
+            final_model = ModelFactory.create(
+                self.model_type,
+                task_spec=self.task_spec,
+                model_params={**self.model_params, **dict(study.best_params)},
+                fit_params=final_fit_params,
+                random_state=self.random_state,
+                logger=self.logger,
+            )
+            final_model.fit(X, y_array, sample_weight=weight_array, exposure=exposure_array)
+            test_bundle = final_model.predict_bundle(X_test, name="final_test", exposure=exposure_test_array)
+            evaluator = Evaluator(metric_registry=self.metric_registry, logger=self.logger)
+            test_evaluation = evaluator.evaluate(
+                y_test_array,
+                test_bundle,
+                task_spec=self.task_spec,
+                sample_weight=weight_test_array,
+                exposure=exposure_test_array,
+            )
+            test_metrics = test_evaluation.metrics_by_prediction().get("final_test", {})
+            _, test_score = self.metric_registry.evaluate(
+                metric_name,
+                y_test_array,
+                y_pred=test_bundle.y_pred,
+                y_score=test_bundle.y_score,
+                sample_weight=weight_test_array,
+                exposure=exposure_test_array,
+            )
+
         return TuningResult(
             task_spec=self.task_spec,
             best_params=dict(study.best_params),
@@ -207,6 +266,9 @@ class OptunaSearch:
             fold_summaries=best_summary.folds,
             alpha=self.alpha,
             metric_name=metric_name,
+            test_metrics=test_metrics,
+            test_score=test_score,
+            test_evaluation=test_evaluation,
             metadata={"model_type": self.model_type, "n_trials": self.n_trials},
             study=study,
         )

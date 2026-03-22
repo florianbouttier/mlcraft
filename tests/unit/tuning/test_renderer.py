@@ -1,6 +1,8 @@
 import pytest
 
-from mlcraft.core.results import FoldSummary, TrialSummary, TuningResult
+import numpy as np
+
+from mlcraft.core.results import CurveData, EvaluationResult, FoldSummary, MetricRow, TrialSummary, TuningResult
 from mlcraft.core.task import TaskSpec
 
 
@@ -23,8 +25,16 @@ def test_tuning_renderer_generates_html():
         fold_summaries=[fold],
         alpha=0.0,
         metric_name="rmse",
+        test_metrics={"rmse": 0.3},
+        test_score=-0.3,
+        test_evaluation=EvaluationResult(
+            task_spec=TaskSpec(task_type="regression"),
+            metric_rows=[MetricRow("final_test", "rmse", 0.3, -0.3, False)],
+            curves={"final_test": [CurveData("residuals", np.array([0.0, 1.0]), np.array([2.0, 1.0]), "Residual", "Count")]},
+        ),
     )
     html = TuningReportRenderer().render(result)
     assert "Best Trial" in html
     assert "Optimization History" in html
-
+    assert "Final Test Evaluation" in html
+    assert "Normalized test score" in html
