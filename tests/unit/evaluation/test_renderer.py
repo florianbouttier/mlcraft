@@ -16,5 +16,5 @@ def test_evaluation_renderer_generates_html():
     )
     html = EvaluationReportRenderer().render(result)
     assert "mlcraft Evaluation Report" in html
-    assert "Metrics" in html
-
+    assert "Graphical leaderboard" in html
+    assert "Curves on shared axes" in html

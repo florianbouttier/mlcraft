@@ -53,13 +53,13 @@ class FullReportBuilder:
         """
 
         sections = ["<h1>mlcraft Full Report</h1>"]
-        if evaluation is not None:
-            sections.append("<section><h2>Evaluation</h2>")
-            sections.append(_extract_body(self.evaluation_renderer.render(evaluation, title="Evaluation Section")))
-            sections.append("</section>")
         if tuning is not None:
             sections.append("<section><h2>Tuning</h2>")
-            sections.append(_extract_body(self.tuning_renderer.render(tuning, title="Tuning Section")))
+            sections.append(_extract_body(self.tuning_renderer.render(tuning, title=None)))
+            sections.append("</section>")
+        if evaluation is not None:
+            sections.append("<section><h2>Evaluation</h2>")
+            sections.append(_extract_body(self.evaluation_renderer.render(evaluation, title=None)))
             sections.append("</section>")
         if shap is not None:
             sections.append("<section><h2>SHAP</h2>")

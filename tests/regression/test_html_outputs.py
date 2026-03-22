@@ -16,5 +16,5 @@ def test_evaluation_html_contains_expected_sections():
         PredictionBundle(name="baseline", y_pred=np.array([0, 1, 0, 1]), y_score=np.array([0.1, 0.9, 0.2, 0.8]), task_spec=TaskSpec(task_type="classification")),
     )
     html = EvaluationReportRenderer().render(result)
-    assert "Metrics" in html
-    assert "Curves" in html
+    assert "Graphical leaderboard" in html
+    assert "Curves on shared axes" in html

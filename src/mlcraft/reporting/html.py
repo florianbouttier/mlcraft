@@ -4,28 +4,174 @@ from __future__ import annotations
 
 import base64
 import io
+import warnings
 
 BASE_TEMPLATE = """
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
     <style>
-      body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; margin: 2rem; color: #1f2933; }
-      h1, h2, h3 { color: #102a43; }
-      table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-      th, td { border: 1px solid #d9e2ec; padding: 0.5rem; text-align: left; }
-      th { background: #f0f4f8; }
-      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-      .card { border: 1px solid #d9e2ec; border-radius: 8px; padding: 1rem; background: white; }
-      .muted { color: #52606d; }
-      img { max-width: 100%; }
-      code { background: #f0f4f8; padding: 0.1rem 0.3rem; border-radius: 4px; }
+      :root {
+        --bg-top: #f4efe7;
+        --bg-bottom: #e9f2f5;
+        --panel: rgba(255, 255, 255, 0.88);
+        --panel-strong: rgba(255, 255, 255, 0.96);
+        --border: rgba(127, 154, 173, 0.22);
+        --text-main: #16324f;
+        --text-soft: #5b7083;
+        --accent: #0f766e;
+        --accent-soft: #d9f3ef;
+        --danger: #c2410c;
+        --danger-soft: #fff1e8;
+        --shadow: 0 24px 60px rgba(22, 50, 79, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--text-main);
+        background:
+          radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 28%),
+          radial-gradient(circle at top right, rgba(194, 65, 12, 0.10), transparent 30%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+        font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+      .page {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 32px 24px 56px;
+      }
+      h1, h2, h3 {
+        color: var(--text-main);
+        line-height: 1.05;
+        margin: 0 0 12px;
+      }
+      h1 { font-size: clamp(2.3rem, 3vw, 3.4rem); letter-spacing: -0.04em; }
+      h2 { font-size: clamp(1.5rem, 2vw, 2.15rem); letter-spacing: -0.03em; }
+      h3 { font-size: 1.05rem; letter-spacing: -0.02em; }
+      p { margin: 0; line-height: 1.6; }
+      section { margin: 0 0 26px; }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+      .hero-panel {
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 251, 252, 0.92) 48%, rgba(224, 247, 243, 0.92) 100%);
+      }
+      .section-stack {
+        display: grid;
+        gap: 22px;
+      }
+      .viz-grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      }
+      .kpi-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 18px;
+        background: var(--panel-strong);
+        min-height: 100%;
+      }
+      .card--wide { grid-column: 1 / -1; }
+      .metric-card {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 249, 250, 0.92));
+      }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 10px;
+        color: var(--text-soft);
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .metric-big {
+        display: block;
+        font-size: clamp(1.55rem, 2vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        margin-bottom: 4px;
+      }
+      .metric-subtle {
+        color: var(--text-soft);
+        font-size: 0.95rem;
+      }
+      .muted { color: var(--text-soft); }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.32rem 0.7rem;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+      .badge--alert {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .chip-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .chip {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 0.65rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .chip strong { font-size: 0.9rem; }
+      .plot-frame {
+        overflow: hidden;
+        border-radius: 18px;
+        background: white;
+      }
+      .plot-frame img {
+        width: 100%;
+        display: block;
+      }
+      .plotly-card .js-plotly-plot,
+      .plotly-card .plot-container {
+        width: 100% !important;
+      }
+      .plotly-card .main-svg {
+        border-radius: 18px;
+      }
+      code {
+        background: rgba(226, 232, 240, 0.9);
+        padding: 0.16rem 0.38rem;
+        border-radius: 8px;
+      }
+      @media (max-width: 720px) {
+        .page { padding: 20px 14px 40px; }
+        .panel { padding: 18px; border-radius: 22px; }
+        .viz-grid { grid-template-columns: 1fr; }
+        .kpi-grid { grid-template-columns: 1fr; }
+      }
     </style>
   </head>
   <body>
-    {{ body | safe }}
+    <div class="page">{{ body | safe }}</div>
   </body>
 </html>
 """
@@ -60,8 +206,10 @@ def figure_to_data_uri(figure) -> str:
     """
 
     buffer = io.BytesIO()
-    figure.tight_layout()
-    figure.savefig(buffer, format="png", bbox_inches="tight")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        figure.tight_layout()
+    figure.savefig(buffer, format="png", bbox_inches="tight", dpi=160)
     buffer.seek(0)
     payload = base64.b64encode(buffer.read()).decode("ascii")
     return f"data:image/png;base64,{payload}"

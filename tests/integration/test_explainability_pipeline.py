@@ -37,4 +37,4 @@ def test_full_report_builder_combines_sections():
     assert "Full Report" in html
     assert "Evaluation" in html
     assert "SHAP" in html
-
+    assert html.find("<h2>Tuning</h2>") < html.find("<h2>Evaluation</h2>")
