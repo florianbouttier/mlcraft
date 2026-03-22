@@ -2,76 +2,76 @@
 
 ## 1. Project Overview
 
-`mlcraft` est une librairie de machine learning modulaire orientée objet.
+`mlcraft` is a modular, object-oriented machine learning library.
 
-Objectifs actuels du projet :
+Current project goals:
 
-- coeur de données numpy-first
-- dépendances minimales
-- API cohérente entre modules
-- séparation stricte entre calcul et rendu HTML
-- réutilisabilité sur plusieurs projets
-- wrappers homogènes pour les backends gradient boosting optionnels
+- numpy-first data core
+- minimal dependencies
+- coherent API across modules
+- strict separation between computation and HTML rendering
+- reuse across multiple projects
+- consistent wrappers for optional gradient boosting backends
 
-Le projet est structuré sous `src/mlcraft/`, avec des exemples dans `examples/` et des tests dans `tests/`.
+The project lives under `src/mlcraft/`, with examples in `examples/` and tests in `tests/`.
 
 ## 2. Existing Architecture
 
-Architecture réelle actuellement implémentée :
+This is the current implemented architecture:
 
 - `core/`
-  - contrats centraux du projet
-  - `schema.py` contient `ColumnSchema`, `DataSchema`, `ColumnDType`, `ColumnRole`
-  - `task.py` contient `TaskSpec`, `TaskType`, `PredictionType`
-  - `prediction.py` contient `PredictionBundle` et `resolve_task_spec`
-  - `results.py` contient `EvaluationResult`, `TuningResult`, `ShapResult` et les objets structurés associés
+  - central project contracts
+  - `schema.py` contains `ColumnSchema`, `DataSchema`, `ColumnDType`, `ColumnRole`
+  - `task.py` contains `TaskSpec`, `TaskType`, `PredictionType`
+  - `prediction.py` contains `PredictionBundle` and `resolve_task_spec`
+  - `results.py` contains `EvaluationResult`, `TuningResult`, `ShapResult`, and related structured result objects
 - `data/`
-  - gestion des conteneurs, inférence de schéma et adaptation des features
-  - `containers.py` normalise `dict[str, np.ndarray]` et `np.ndarray`
-  - `detection.py` gère détection de types et NA
-  - `inference.py` expose `InferenceOptions`, `SchemaInferer`, `infer_schema`
-  - `adapters.py` contient `FeatureAdapterConfig`, `FittedFeatureAdapter`, `fit_feature_adapter`, `transform_feature_data`
+  - data container handling, schema inference, and feature adaptation
+  - `containers.py` normalizes `dict[str, np.ndarray]` and `np.ndarray`
+  - `detection.py` handles dtype and missing-value detection
+  - `inference.py` exposes `InferenceOptions`, `SchemaInferer`, `infer_schema`
+  - `adapters.py` contains `FeatureAdapterConfig`, `FittedFeatureAdapter`, `fit_feature_adapter`, `transform_feature_data`
 - `split/`
-  - splitters sans dépendance à scikit-learn
-  - `train_test.py` expose `train_test_split_random` et `train_test_split_time`
-  - `cv.py` expose `KFoldSplitter`, `StratifiedKFoldSplitter`, `resolve_cv_splitter`
-  - `base.py` définit le protocole `BaseCVSplitter`
+  - splitters without a scikit-learn dependency
+  - `train_test.py` exposes `train_test_split_random` and `train_test_split_time`
+  - `cv.py` exposes `KFoldSplitter`, `StratifiedKFoldSplitter`, `resolve_cv_splitter`
+  - `base.py` defines the `BaseCVSplitter` protocol
 - `metrics/`
-  - métriques numpy pures et registry central
+  - pure numpy metrics and the central registry
   - `regression.py`, `classification.py`, `poisson.py`
-  - `registry.py` contient `MetricDefinition`, `MetricRegistry`, `default_metric_registry`
+  - `registry.py` contains `MetricDefinition`, `MetricRegistry`, `default_metric_registry`
 - `evaluation/`
-  - calcul d’évaluation et rendu dédié
-  - `evaluator.py` contient `Evaluator`
-  - `curves.py` prépare les courbes
-  - `renderer.py` contient `EvaluationReportRenderer`
+  - evaluation computation plus dedicated rendering
+  - `evaluator.py` contains `Evaluator`
+  - `curves.py` prepares curve data
+  - `renderer.py` contains `EvaluationReportRenderer`
 - `models/`
-  - abstraction commune des wrappers modèles
-  - `base.py` contient `BaseGBMModel`
-  - `xgboost_model.py`, `lightgbm_model.py`, `catboost_model.py` contiennent les wrappers backend
-  - `factory.py` contient `ModelFactory`
-  - `objectives.py` gère le mapping objectifs / métriques backend
+  - shared abstraction for model wrappers
+  - `base.py` contains `BaseGBMModel`
+  - `xgboost_model.py`, `lightgbm_model.py`, `catboost_model.py` contain backend wrappers
+  - `factory.py` contains `ModelFactory`
+  - `objectives.py` handles backend objective and metric mapping
 - `tuning/`
-  - optimisation via Optuna et reporting associé
-  - `optuna_search.py` contient `OptunaSearch`
-  - `search_space.py` gère les search spaces
-  - `renderer.py` contient `TuningReportRenderer`
+  - Optuna-based optimization and related reporting
+  - `optuna_search.py` contains `OptunaSearch`
+  - `search_space.py` handles search spaces
+  - `renderer.py` contains `TuningReportRenderer`
 - `shap/`
-  - explainability optionnelle
-  - `analyzer.py` contient `ShapAnalyzer`
-  - `renderer.py` contient `ShapReportRenderer`
+  - optional explainability
+  - `analyzer.py` contains `ShapAnalyzer`
+  - `renderer.py` contains `ShapReportRenderer`
 - `reporting/`
-  - helpers HTML transverses
-  - `html.py` contient le shell HTML partagé
-  - `full_report.py` contient `FullReportBuilder`
+  - shared HTML helpers
+  - `html.py` contains the shared HTML shell
+  - `full_report.py` contains `FullReportBuilder`
 - `utils/`
-  - utilitaires transverses
-  - `logging.py` centralise le logging package-level
-  - `optional.py` gère les dépendances optionnelles
-  - `random.py` normalise `random_state`
-  - `serialization.py` sérialise numpy / dataclasses / enums
+  - shared utilities
+  - `logging.py` centralizes package-level logging
+  - `optional.py` handles optional dependencies
+  - `random.py` normalizes `random_state`
+  - `serialization.py` serializes numpy arrays, dataclasses, and enums
 
-Objets clés existants :
+Key existing objects:
 
 - `TaskSpec`
 - `ColumnSchema` / `DataSchema`
@@ -80,30 +80,31 @@ Objets clés existants :
 - `TuningResult`
 - `ShapResult`
 
-Interactions existantes à respecter :
+Existing interactions that should be preserved:
 
-- `TaskSpec` est le contrat commun entre modèles, évaluation, tuning et prédictions
-- `infer_schema()` produit `DataSchema`, qui est ensuite réutilisé par `fit_feature_adapter()`
-- `BaseGBMModel.fit()` infère le schéma, crée un adapter, entraîne le backend natif
-- `BaseGBMModel.predict_bundle()` produit un `PredictionBundle`
-- `Evaluator.evaluate()` consomme un ou plusieurs `PredictionBundle` et retourne un `EvaluationResult`
-- `OptunaSearch.run()` crée des modèles via `ModelFactory`, évalue via `MetricRegistry`, et retourne un `TuningResult`
-- `ShapAnalyzer.compute()` retourne un `ShapResult`
-- `FullReportBuilder.build()` combine `EvaluationResult`, `TuningResult` et `ShapResult`
+- `TaskSpec` is the shared contract across models, evaluation, tuning, and predictions.
+- `infer_schema()` produces a `DataSchema`, which is then reused by `fit_feature_adapter()`.
+- `BaseGBMModel.fit()` infers schema, builds a feature adapter, and trains the native backend.
+- `BaseGBMModel.predict_bundle()` produces a `PredictionBundle`.
+- `Evaluator.evaluate()` consumes one or more `PredictionBundle` objects and returns an `EvaluationResult`.
+- `OptunaSearch.run()` creates models through `ModelFactory`, scores them through `MetricRegistry`, and returns a `TuningResult`.
+- When `X_test` and `y_test` are provided to `OptunaSearch.run()`, the best model is refit on the full training data, evaluated on the holdout set, and the final holdout metrics are stored in `TuningResult`.
+- `ShapAnalyzer.compute()` returns a `ShapResult`.
+- `FullReportBuilder.build()` combines `EvaluationResult`, `TuningResult`, and `ShapResult`.
 
 ## 3. Core Design Principles
 
-- numpy-first partout dans le coeur de la lib
-- dépendances limitées et justifiées
-- strong defaults avec override explicite
-- réutiliser les abstractions existantes avant d’en créer une nouvelle
-- éviter la duplication de logique entre modules
-- garder une API cohérente d’un module à l’autre
-- séparer clairement data, modèles, métriques, évaluation et reporting
+- numpy-first across the library core
+- limited and justified dependencies
+- strong defaults with explicit overrides
+- reuse existing abstractions before creating new ones
+- avoid duplicating logic across modules
+- keep a coherent API from one module to another
+- separate data, models, metrics, evaluation, and reporting clearly
 
 ## 4. Public API Rules
 
-Exports top-level actuels via `src/mlcraft/__init__.py` :
+Current top-level exports from `src/mlcraft/__init__.py`:
 
 - `ColumnSchema`
 - `DataSchema`
@@ -119,66 +120,67 @@ Exports top-level actuels via `src/mlcraft/__init__.py` :
 - `ModelFactory`
 - `OptunaSearch`
 
-Règles :
+Rules:
 
-- ne pas exposer automatiquement un nouvel objet via `mlcraft/__init__.py`
-- n’ajouter au top-level que des entrées stables, réutilisables et cross-module
-- éviter les signatures publiques avec trop de paramètres plats
-- utiliser les objets existants et des dictionnaires de config pour l’advanced usage
-  - exemples existants : `model_params`, `fit_params`, `search_space`, `report_options`, `inference_options`
-- considérer l’API top-level comme stable par défaut
+- do not automatically expose a new object through `mlcraft/__init__.py`
+- only add top-level exports for stable, reusable, cross-module entry points
+- avoid public signatures with too many flat parameters
+- use existing objects and configuration dictionaries for advanced usage
+- existing examples include `model_params`, `fit_params`, `search_space`, `report_options`, and `inference_options`
+- treat the top-level API as stable by default
 
 ## 5. Dependency Policy
 
-- pas de `pandas`
-- pas de `polars`
-- pas de dépendance à `scikit-learn` dans l’architecture actuelle
-- `shap` reste optionnel
-- `xgboost`, `lightgbm`, `catboost` restent optionnels
-- toute nouvelle dépendance doit être justifiée par un vrai besoin non couvert par l’existant
-- si une dépendance est optionnelle, utiliser le pattern déjà en place dans `utils.optional`
+- no `pandas`
+- no `polars`
+- no `scikit-learn` dependency in the current architecture
+- `shap` remains optional
+- `xgboost`, `lightgbm`, and `catboost` remain optional
+- every new dependency must be justified by a real need not covered by the current stack
+- if a dependency is optional, use the existing pattern from `utils.optional`
 
-Dépendances actuellement présentes dans le projet :
+Current dependencies in the project:
 
-- base : `numpy`, `jinja2`, `matplotlib`, `optuna`
-- optionnelles : `shap`, `xgboost`, `lightgbm`, `catboost`
+- base: `numpy`, `jinja2`, `matplotlib`, `optuna`
+- optional: `shap`, `xgboost`, `lightgbm`, `catboost`
 
 ## 6. Logging Policy
 
-- utiliser `logging`, jamais `print` dans le code de librairie
-- utiliser les helpers de `utils.logging`
+- use `logging`, never `print` in library code
+- use helpers from `utils.logging`
+- current helpers are:
   - `configure_logging`
   - `get_logger`
   - `set_verbosity`
   - `inject_logger`
-- respecter le namespace `mlcraft`
-- permettre à l’utilisateur de récupérer puis modifier la verbosité plus tard
-- conserver le pattern actuel : logger injectable, fallback package-level
+- keep the `mlcraft` logger namespace
+- let users retrieve loggers and change verbosity later
+- preserve the current pattern: injectable logger with a package-level fallback
 
 ## 7. Metrics & Optimization Rules
 
-- `MetricRegistry` est la source de vérité des métriques
-- il mappe :
-  - nom canonique utilisateur
-  - fonction numpy interne
-  - alias backend
-  - direction `higher_is_better`
-- ne pas disperser la logique de direction d’optimisation dans plusieurs modules
+- `MetricRegistry` is the source of truth for metrics
+- it maps:
+  - canonical user-facing metric name
+  - internal numpy function
+  - backend alias
+  - `higher_is_better` direction
+- do not spread optimization-direction logic across multiple modules
 
-Normalisation actuelle des scores :
+Current score normalization:
 
-- si `higher_is_better = True`, score interne = `metric`
-- si `higher_is_better = False`, score interne = `-metric`
+- if `higher_is_better = True`, internal score = `metric`
+- if `higher_is_better = False`, internal score = `-metric`
 
-Logique Optuna actuelle dans `OptunaSearch` :
+Current Optuna logic in `OptunaSearch`:
 
 - `penalized_score = val_score - alpha * abs(train_score - val_score)`
-- Optuna maximise toujours ce `penalized_score`
-- ne pas casser cette convention sans justification forte et migration claire
+- Optuna always maximizes this `penalized_score`
+- do not change this convention without strong justification and a clear migration path
 
 ## 8. Data & Schema Rules
 
-Types supportés aujourd’hui :
+Currently supported dtypes:
 
 - `integer`
 - `float`
@@ -186,18 +188,18 @@ Types supportés aujourd’hui :
 - `datetime`
 - `categorical`
 
-Règles à respecter :
+Rules to preserve:
 
-- la gestion des NA fait partie de l’inférence de schéma
-- les NA ne doivent pas faire dériver artificiellement un type sémantique
-- ne pas mélanger inférence et transformation
-  - inférence dans `data/detection.py` et `data/inference.py`
-  - transformation dans `data/adapters.py`
-- conserver `DataSchema` et `ColumnSchema` comme source de vérité des métadonnées colonne
+- missing-value handling is part of schema inference
+- missing values must not artificially change the semantic dtype
+- do not mix inference and transformation
+- inference belongs in `data/detection.py` and `data/inference.py`
+- transformation belongs in `data/adapters.py`
+- keep `DataSchema` and `ColumnSchema` as the source of truth for column metadata
 
 ## 9. Model Wrappers Rules
 
-Interface commune existante sur `BaseGBMModel` :
+Current shared interface on `BaseGBMModel`:
 
 - `fit`
 - `predict`
@@ -205,28 +207,28 @@ Interface commune existante sur `BaseGBMModel` :
 - `get_params`
 - `set_params`
 
-Autres méthodes publiques déjà présentes :
+Other public methods already present:
 
 - `predict_bundle`
 - `transform_features`
 
-Règles :
+Rules:
 
-- tout nouveau wrapper doit hériter du contrat `BaseGBMModel`
-- le mapping backend doit passer par `models/objectives.py` et `MetricRegistry`
-- conserver une sémantique cohérente entre backends
-- supporter `sample_weight` quand le backend le permet
-- supporter `exposure` dans le flux Poisson selon le mécanisme actuel
-- utiliser `ModelFactory` comme point d’entrée uniforme
+- every new wrapper must follow the `BaseGBMModel` contract
+- backend mapping must go through `models/objectives.py` and `MetricRegistry`
+- preserve coherent semantics across backends
+- support `sample_weight` when the backend supports it
+- support `exposure` in the Poisson flow using the current mechanism
+- use `ModelFactory` as the uniform entry point
 
 ## 10. Evaluation & Reporting Rules
 
-- calcul et rendu HTML doivent rester séparés
-- `Evaluator` calcule, les renderers rendent
-- `EvaluationResult` ne doit pas contenir de logique HTML
-- `TuningResult` ne doit pas contenir de logique HTML
-- `ShapResult` ne doit pas contenir de logique HTML
-- le rendu dédié reste dans :
+- computation and HTML rendering must remain separate
+- `Evaluator` computes, renderers render
+- `EvaluationResult` must not contain HTML logic
+- `TuningResult` must not contain HTML logic
+- `ShapResult` must not contain HTML logic
+- dedicated rendering stays in:
   - `evaluation/renderer.py`
   - `tuning/renderer.py`
   - `shap/renderer.py`
@@ -234,58 +236,59 @@ Règles :
 
 ## 11. SHAP Rules
 
-- `shap` est optionnel
-- utiliser `optional_import()` pour gérer proprement l’absence de dépendance
-- `ShapAnalyzer` calcule uniquement les résultats
-- `ShapReportRenderer` s’occupe uniquement du rendu
-- garder le fallback propre si `shap` n’est pas installé
+- `shap` is optional
+- use `optional_import()` to handle missing dependencies cleanly
+- `ShapAnalyzer` only computes results
+- `ShapReportRenderer` only renders results
+- keep the fallback clear when `shap` is not installed
 
 ## 12. Testing Policy
 
-- toute nouvelle feature doit ajouter des tests unitaires
-- les dépendances optionnelles doivent avoir des tests conditionnels
-  - pattern actuel : `pytest.importorskip(...)`
-- les pipelines importants doivent avoir des tests d’intégration
-- ne pas casser la structure des objets de résultats existants
-- conserver l’organisation actuelle :
+- every new feature must add unit tests
+- optional dependencies must use conditional tests
+- current pattern: `pytest.importorskip(...)`
+- important pipelines should have integration tests
+- do not break the structure of existing result objects
+- preserve the current test organization:
   - `tests/unit/`
   - `tests/integration/`
   - `tests/optional/`
   - `tests/regression/`
 
-Avant de considérer un changement comme terminé :
+Before considering a change complete:
 
-- vérifier la compilation du package si pertinent
-- lancer les tests ciblés ou `pytest` selon l’impact
+- verify package compilation when relevant
+- run targeted tests or the full `pytest` suite depending on the scope
 
 ## 13. Documentation Policy
 
-- utiliser exclusivement des docstrings style Google
-- garder les docstrings compactes, utiles, et orientées usage
-- ajouter des exemples concrets sur les API publiques importantes
-- ne pas dupliquer inutilement les type hints dans le texte
-- pas de docstring vide, vague ou décorative
+- use Google-style docstrings exclusively
+- keep docstrings compact, useful, and usage-oriented
+- add concrete examples on important public APIs
+- do not duplicate type hints unnecessarily in prose
+- do not leave empty, vague, or decorative docstrings
 
 ## 14. Change Workflow
 
-Quand tu modifies le code :
+When modifying the code:
 
-1. identifier le module réel où la feature doit s’intégrer
-2. vérifier si `TaskSpec`, `DataSchema`, `PredictionBundle`, `MetricRegistry` ou un autre objet existant couvre déjà le besoin
-3. implémenter avec l’impact minimal possible
-4. ajouter ou adapter les tests
-5. ajouter ou corriger les docstrings
-6. vérifier la cohérence globale avec les autres modules
-7. ne pas casser l’API sans justification explicite
-8. faire des commits atomiques avec des messages clairs
+1. identify the real module where the feature belongs
+2. check whether `TaskSpec`, `DataSchema`, `PredictionBundle`, `MetricRegistry`, or another existing object already covers the need
+3. implement the change with the smallest reasonable impact
+4. add or update tests
+5. add or update docstrings
+6. verify cross-module consistency
+7. do not break the API without an explicit justification
+8. make atomic commits with clear messages
+9. update `AGENT.md` when architecture, policies, or public API expectations change
 
-## 15. Anti-patterns à éviter
+## 15. Anti-patterns to Avoid
 
-- duplication de logique entre modules
-- nouvelle abstraction alors qu’un objet existant convient déjà
-- dépendance lourde non justifiée
-- signature publique illisible avec trop de paramètres plats
-- mélange calcul / rendu HTML
-- logique backend dupliquée hors de `models/objectives.py` et `MetricRegistry`
-- `print` dans le code librairie
-- ajout d’un export top-level sans raison forte
+- duplicated logic across modules
+- new abstractions when an existing object already fits
+- unjustified heavy dependencies
+- unreadable public signatures with too many flat parameters
+- mixing computation and HTML rendering
+- duplicating backend logic outside `models/objectives.py` and `MetricRegistry`
+- `print` in library code
+- adding a top-level export without a strong reason
