@@ -18,6 +18,8 @@ def test_evaluation_renderer_generates_html():
     assert "mlcraft Evaluation Report" in html
     assert "Graphical leaderboard" in html
     assert "Curves on shared axes" in html
+    assert "Plot Zoom" in html
+    assert 'data-plot-scale="0.85"' in html
 
 
 def test_evaluation_renderer_builds_dictionary_context():

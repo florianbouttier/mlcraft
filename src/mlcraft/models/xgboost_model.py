@@ -27,7 +27,7 @@ class XGBoostModel(BaseGBMModel):
         }
 
     def _fit_backend(self, X, y, *, sample_weight=None, exposure=None, eval_set=None, metadata=None):
-        xgb = optional_import("xgboost", extra_name="xgboost")
+        xgb = optional_import("xgboost")
         params = self._default_model_params()
         params.update(self.model_params)
         params["objective"] = resolve_backend_objective(self.backend_name, self.task_spec)
@@ -53,6 +53,6 @@ class XGBoostModel(BaseGBMModel):
         )
 
     def _predict_backend(self, X, *, metadata=None):
-        xgb = optional_import("xgboost", extra_name="xgboost")
+        xgb = optional_import("xgboost")
         dmatrix = xgb.DMatrix(X)
         return self.model_.predict(dmatrix)

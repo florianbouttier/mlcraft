@@ -92,6 +92,8 @@ class FoldSummary:
     train_score: float
     val_score: float
     penalized_score: float
+    train_evaluation: EvaluationResult | None = None
+    val_evaluation: EvaluationResult | None = None
 
 
 @dataclass
@@ -129,6 +131,8 @@ class TuningResult:
             final holdout set.
         test_evaluation: Optional structured evaluation of the final holdout
             set.
+        final_model: Optional fitted final model refit on the full training
+            partition with the winning hyperparameters.
         metadata: Additional metadata about the search run.
         study: Optional in-memory Optuna study.
     """
@@ -147,6 +151,7 @@ class TuningResult:
     test_metrics: dict[str, float] | None = None
     test_score: float | None = None
     test_evaluation: EvaluationResult | None = None
+    final_model: Any = field(default=None, repr=False, compare=False)
     metadata: dict[str, Any] = field(default_factory=dict)
     study: Any = field(default=None, repr=False, compare=False)
 

@@ -104,6 +104,7 @@ Existing interactions that should be preserved:
 - avoid duplicating logic across modules
 - keep a coherent API from one module to another
 - separate data, models, metrics, evaluation, and reporting clearly
+- when a requested capability is generic to `mlcraft` rather than specific to a downstream project, implement it in `mlcraft` first and keep downstream scripts thin
 
 ## 4. Public API Rules
 

@@ -26,6 +26,9 @@ DEFAULT_REPORT_PALETTE: dict[str, str] = {
     "series_muted": "#7aa6c2",
     "line_soft": "#d7e3ec",
     "grid_soft": "#94a3b8",
+    "interaction_low": "#ffffff",
+    "interaction_mid": "#fecaca",
+    "interaction_high": "#b91c1c",
 }
 
 

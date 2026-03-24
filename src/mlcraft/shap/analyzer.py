@@ -48,7 +48,7 @@ class ShapAnalyzer:
             >>> analyzer.compute(model, X_test, max_samples=200)
         """
 
-        shap = optional_import("shap", extra_name="shap")
+        shap = optional_import("shap")
         matrix, _ = model.transform_features(X)
         feature_names = list(model.adapter_.feature_order)
         if max_samples is not None and matrix.shape[0] > max_samples:
@@ -70,9 +70,42 @@ class ShapAnalyzer:
         return ShapResult(
             feature_names=feature_names,
             shap_values=np.asarray(shap_values),
-            feature_values=np.asarray(matrix, dtype=float) if matrix.dtype != object else None,
+            feature_values=np.array(matrix, copy=True),
             base_values=np.asarray(base_values),
             interaction_values=None if interactions is None else np.asarray(interactions),
             importance=np.asarray(importance),
             metadata={"n_samples": int(np.asarray(shap_values).shape[0])},
         )
+
+    def compute_with_artifacts(
+        self,
+        model,
+        X,
+        *,
+        sample_weight=None,
+        max_samples=None,
+        interaction_values=False,
+        output_dir=None,
+        report_name: str = "shap_report.html",
+        result_name: str = "shap.json",
+        title: str | None = "mlcraft SHAP Report",
+    ):
+        """Compute SHAP values and persist standalone HTML/JSON artifacts."""
+
+        from mlcraft.shap.artifacts import write_shap_artifacts
+
+        result = self.compute(
+            model,
+            X,
+            sample_weight=sample_weight,
+            max_samples=max_samples,
+            interaction_values=interaction_values,
+        )
+        artifacts = write_shap_artifacts(
+            result,
+            output_dir=output_dir,
+            report_name=report_name,
+            result_name=result_name,
+            title=title,
+        )
+        return result, artifacts

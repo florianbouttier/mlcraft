@@ -27,7 +27,7 @@ class LightGBMModel(BaseGBMModel):
         }
 
     def _fit_backend(self, X, y, *, sample_weight=None, exposure=None, eval_set=None, metadata=None):
-        lgb = optional_import("lightgbm", extra_name="lightgbm")
+        lgb = optional_import("lightgbm")
         params = self._default_model_params()
         params.update(self.model_params)
         params["objective"] = resolve_backend_objective(self.backend_name, self.task_spec)

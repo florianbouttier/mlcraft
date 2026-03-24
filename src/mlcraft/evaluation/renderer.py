@@ -91,6 +91,29 @@ class EvaluationReportRenderer:
         )
 
     def _render_model_comparison(self, context: dict[str, Any]) -> str:
+        try:
+            return self._render_model_comparison_plotly(context)
+        except Exception:
+            return self._render_model_comparison_matplotlib(context)
+
+    def _render_model_comparison_plotly(self, context: dict[str, Any]) -> str:
+        figures = [
+            ("Primary Metric Ranking", self._plot_primary_metric_leaderboard_plotly(context), True),
+            ("Metric Comparison Map", self._plot_metric_heatmap_plotly(context), True),
+        ]
+        return (
+            "<section class='panel section-stack'>"
+            "<div>"
+            "<span class='eyebrow'>Model Comparison</span>"
+            "<h2>Graphical leaderboard</h2>"
+            "</div>"
+            "<div class='viz-grid'>"
+            f"{''.join(self._plotly_cards(figures))}"
+            "</div>"
+            "</section>"
+        )
+
+    def _render_model_comparison_matplotlib(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
         leaderboard_fig = self._plot_primary_metric_leaderboard(context)
@@ -113,6 +136,22 @@ class EvaluationReportRenderer:
             plt.close(heatmap_fig)
 
     def _render_curve_comparison(self, context: dict[str, Any]) -> str:
+        try:
+            return (
+                "<section class='panel section-stack'>"
+                "<div>"
+                "<span class='eyebrow'>Curve Comparison</span>"
+                "<h2>Curves on shared axes</h2>"
+                "</div>"
+                "<div class='viz-grid'>"
+                f"{''.join(self._plotly_cards([(group['title'], self._plot_curve_group_figure(group), True) for group in context['curve_groups']]))}"
+                "</div>"
+                "</section>"
+            )
+        except Exception:
+            return self._render_curve_comparison_matplotlib(context)
+
+    def _render_curve_comparison_matplotlib(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
         sections = [
@@ -221,6 +260,144 @@ class EvaluationReportRenderer:
         colorbar = fig.colorbar(heatmap, ax=ax, fraction=0.035, pad=0.02)
         colorbar.ax.set_ylabel("Normalized performance", rotation=270, labelpad=18)
         return fig
+
+    def _plot_primary_metric_leaderboard_plotly(self, context: dict[str, Any]):
+        from mlcraft.utils.optional import optional_import
+
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        primary_metric = context["primary_metric_name"]
+        rows = [row for row in context["metric_rows"] if row["metric_name"] == primary_metric]
+        rows = sorted(rows, key=lambda row: row["score"], reverse=True)
+        figure = go.Figure(
+            go.Bar(
+                x=[row["value"] for row in rows],
+                y=[row["prediction_name"] for row in rows],
+                orientation="h",
+                marker_color=[self.palette["accent"] if index == 0 else self.palette["series_muted"] for index, _ in enumerate(rows)],
+                text=[f"{row['value']:.6f}" for row in rows],
+                textposition="outside",
+            )
+        )
+        direction = "higher is better" if rows and rows[0]["higher_is_better"] else "lower is better"
+        figure.update_layout(
+            title="Primary metric ranking",
+            xaxis_title=f"{primary_metric} ({direction})",
+            yaxis_title="Prediction bundle",
+            template="plotly_white",
+        )
+        return figure
+
+    def _plot_metric_heatmap_plotly(self, context: dict[str, Any]):
+        from mlcraft.utils.optional import optional_import
+
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        metrics_by_prediction = context["metrics_by_prediction"]
+        predictions = sorted(
+            metrics_by_prediction,
+            key=lambda prediction_name: self._primary_score(metrics_by_prediction[prediction_name], context["primary_metric_name"]),
+            reverse=True,
+        )
+        metrics: list[str] = []
+        for prediction_name in predictions:
+            for row in metrics_by_prediction[prediction_name]:
+                if row["metric_name"] not in metrics:
+                    metrics.append(row["metric_name"])
+        matrix = []
+        text = []
+        for prediction_name in predictions:
+            row_map = {row["metric_name"]: row["value"] for row in metrics_by_prediction[prediction_name]}
+            matrix_row = [row_map.get(metric_name, np.nan) for metric_name in metrics]
+            matrix.append(matrix_row)
+            text.append([("" if np.isnan(value) else f"{value:.6f}") for value in matrix_row])
+        figure = go.Figure(
+            go.Heatmap(
+                z=matrix,
+                x=metrics,
+                y=predictions,
+                colorscale="YlGnBu",
+                text=text,
+                texttemplate="%{text}",
+                hovertemplate="Prediction=%{y}<br>Metric=%{x}<br>Value=%{z:.6f}<extra></extra>",
+                colorbar={"title": "Metric value"},
+            )
+        )
+        figure.update_layout(
+            title="Metric comparison map",
+            xaxis_title="Metric",
+            yaxis_title="Prediction bundle",
+            template="plotly_white",
+        )
+        return figure
+
+    def _plot_curve_group_figure(self, curve_group: dict[str, Any]):
+        from mlcraft.utils.optional import optional_import
+
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        figure = go.Figure()
+        for series in curve_group["series"]:
+            figure.add_trace(
+                go.Scatter(
+                    x=series["x"],
+                    y=series["y"],
+                    mode="lines",
+                    name=series["prediction_name"],
+                    hovertemplate=(
+                        f"{escape(series['prediction_name'])}<br>"
+                        + f"{escape(curve_group['x_label'])}=%{{x:.6f}}<br>"
+                        + f"{escape(curve_group['y_label'])}=%{{y:.6f}}<extra></extra>"
+                    ),
+                )
+            )
+        if curve_group["curve_name"] in {"roc", "calibration", "poisson_calibration"}:
+            diagonal_start = min(min(series["x"] or [0.0]) for series in curve_group["series"])
+            diagonal_end = max(max(series["x"] or [1.0]) for series in curve_group["series"])
+            figure.add_trace(
+                go.Scatter(
+                    x=[diagonal_start, diagonal_end],
+                    y=[diagonal_start, diagonal_end],
+                    mode="lines",
+                    name="Diagonal",
+                    line={"color": self.palette["grid_soft"], "dash": "dot"},
+                )
+            )
+        figure.update_layout(
+            title=curve_group["title"],
+            xaxis_title=curve_group["x_label"],
+            yaxis_title=curve_group["y_label"],
+            template="plotly_white",
+        )
+        return figure
+
+    def _plotly_cards(self, figures: list[tuple[str, object, bool]]) -> list[str]:
+        from mlcraft.utils.optional import optional_import
+
+        optional_import("plotly", extra_name="reporting")
+        import plotly.io as pio
+
+        cards: list[str] = []
+        include_js = True
+        for title, figure, wide in figures:
+            fragment = pio.to_html(
+                figure,
+                full_html=False,
+                include_plotlyjs="inline" if include_js else False,
+                config={"displayModeBar": True, "responsive": True, "scrollZoom": True},
+            )
+            include_js = False
+            wide_class = " card--wide" if wide else ""
+            cards.append(
+                f"<div class='card plotly-card{wide_class}'>"
+                f"<span class='eyebrow'>{escape(title)}</span>"
+                f"{fragment}"
+                "</div>"
+            )
+        return cards
 
     def _plot_curve_groups(self, curve_groups: list[dict[str, Any]]) -> list[tuple[str, object]]:
         import matplotlib.pyplot as plt

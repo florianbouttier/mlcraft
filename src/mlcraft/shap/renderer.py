@@ -11,6 +11,7 @@ from mlcraft.core.results import ShapResult
 from mlcraft.reporting.html import figure_to_data_uri, wrap_html
 from mlcraft.reporting.palette import chart_colors, get_report_palette
 from mlcraft.reporting.view_models import build_shap_context
+from mlcraft.utils.optional import OptionalDependencyError, optional_import
 
 
 class ShapReportRenderer:
@@ -42,7 +43,7 @@ class ShapReportRenderer:
         sections.append("<section class='panel section-stack'>")
         sections.append("<div><span class='eyebrow'>Feature Structure</span><h2>Importance and distribution</h2></div>")
         sections.append("<div class='viz-grid viz-grid--compact'>")
-        for title, figure in self._figures(context):
+        for title, figure in self._iter_figures(context):
             sections.append(self._figure_card(title, figure))
             plt.close(figure)
         sections.append("</div></section>")
@@ -53,7 +54,7 @@ class ShapReportRenderer:
         return html
 
     def _render_summary_panel(self, context: dict[str, Any]) -> str:
-        top_feature = context["top_feature_names"][0] if context["top_feature_names"] else "n/a"
+        top_feature = context["ordered_feature_names"][0] if context["ordered_feature_names"] else "n/a"
         return (
             "<section class='panel hero-panel section-stack'>"
             "<div>"
@@ -68,15 +69,51 @@ class ShapReportRenderer:
             "</section>"
         )
 
-    def _figures(self, context: dict[str, Any]) -> list[tuple[str, object]]:
-        figures = [
-            ("Mean Absolute SHAP Importance", self._importance_plot(context)),
-            ("SHAP Beeswarm", self._beeswarm_plot(context)),
-        ]
+    def _iter_figures(self, context: dict[str, Any]):
+        try:
+            shap = optional_import("shap")
+        except OptionalDependencyError:
+            yield from self._iter_fallback_figures(context)
+            return
+        explanation = self._build_explanation(shap, context)
+        yield ("SHAP Beeswarm", self._official_beeswarm_plot(shap, explanation, context))
+        if context["interaction_values"] is not None:
+            yield ("SHAP Interaction Plot", self._interaction_plot(context))
+        for feature_name in context["ordered_feature_names"]:
+            yield (f"SHAP Scatter - {feature_name}", self._official_scatter_plot(shap, explanation, feature_name))
+
+    def _iter_fallback_figures(self, context: dict[str, Any]):
+        yield ("Mean Absolute SHAP Importance", self._importance_plot(context))
+        yield ("SHAP Beeswarm", self._beeswarm_plot(context))
         if context["interaction_matrix"] is not None:
-            figures.append(("Mean Absolute SHAP Interactions", self._interaction_plot(context)))
-        figures.extend((f"SHAP Scatter - {scatter['feature_name']}", self._scatter_plot(scatter)) for scatter in context["scatter_plots"])
-        return figures
+            yield ("Mean Absolute SHAP Interactions", self._interaction_plot(context))
+        for scatter in context["scatter_plots"]:
+            yield (f"SHAP Scatter - {scatter['feature_name']}", self._scatter_plot(scatter))
+
+    def _build_explanation(self, shap, context: dict[str, Any]):
+        base_values = context["base_values"]
+        if isinstance(base_values, np.ndarray) and base_values.ndim == 0:
+            base_values = base_values.item()
+        elif isinstance(base_values, np.ndarray) and base_values.size == 1:
+            base_values = base_values.reshape(-1)[0].item()
+        return shap.Explanation(
+            values=np.asarray(context["shap_values"]),
+            base_values=base_values,
+            data=context["feature_values"],
+            feature_names=list(context["feature_names"]),
+        )
+
+    def _official_beeswarm_plot(self, shap, explanation, context: dict[str, Any]):
+        import matplotlib.pyplot as plt
+
+        shap.plots.beeswarm(explanation, max_display=int(context["top_n"]), show=False)
+        return plt.gcf()
+
+    def _official_scatter_plot(self, shap, explanation, feature_name: str):
+        import matplotlib.pyplot as plt
+
+        shap.plots.scatter(explanation[:, feature_name], color=explanation, show=False)
+        return plt.gcf()
 
     def _importance_plot(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
@@ -111,18 +148,80 @@ class ShapReportRenderer:
 
     def _interaction_plot(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
+        from matplotlib.colors import LinearSegmentedColormap
 
-        fig, ax = plt.subplots(figsize=(7.2, 5.8))
-        matrix = np.asarray(context["interaction_matrix"], dtype=float)
-        image = ax.imshow(matrix, cmap="YlGnBu")
-        labels = context["top_feature_names"]
-        ax.set_xticks(range(len(labels)))
-        ax.set_yticks(range(len(labels)))
-        ax.set_xticklabels(labels, rotation=35, ha="right")
-        ax.set_yticklabels(labels)
-        ax.set_title("Mean absolute SHAP interactions", loc="left", fontsize=16, fontweight="bold")
-        fig.colorbar(image, ax=ax, fraction=0.04, pad=0.03)
+        interaction_values = np.asarray(context["interaction_values"], dtype=float)
+        interaction_matrix = np.abs(interaction_values).mean(0)
+        ranking_matrix = np.array(interaction_matrix, copy=True)
+        for index in range(ranking_matrix.shape[0]):
+            ranking_matrix[index, index] = 0
+        indices = np.argsort(-ranking_matrix.sum(0))[:12]
+        sorted_matrix = interaction_matrix[indices, :][:, indices]
+        labels = np.asarray(context["feature_names"])[indices].tolist()
+        cell_count = max(int(sorted_matrix.shape[0]), 1)
+        figure_size = float(np.clip(1.05 * cell_count + 2.6, 9.0, 18.0))
+        font_size = float(np.clip(17.0 - 0.55 * cell_count, 8.0, 15.0))
+        max_abs_interaction = float(np.max(sorted_matrix)) if sorted_matrix.size else 0.0
+        interaction_cmap = LinearSegmentedColormap.from_list(
+            "mlcraft_interaction_white_red",
+            [
+                self.palette["interaction_low"],
+                self.palette["interaction_mid"],
+                self.palette["interaction_high"],
+            ],
+        )
+
+        fig, ax = plt.subplots(figsize=(figure_size, figure_size))
+        image = ax.imshow(sorted_matrix, cmap=interaction_cmap, vmin=0.0, vmax=max_abs_interaction if max_abs_interaction > 0.0 else 1.0)
+        ax.set_yticks(
+            range(sorted_matrix.shape[0]),
+            labels,
+            rotation=50.4,
+            horizontalalignment="right",
+        )
+        ax.set_xticks(
+            range(sorted_matrix.shape[0]),
+            labels,
+            rotation=50.4,
+            horizontalalignment="left",
+        )
+        ax.xaxis.tick_top()
+        for row_index in range(sorted_matrix.shape[0]):
+            for col_index in range(sorted_matrix.shape[1]):
+                abs_value = float(sorted_matrix[row_index, col_index])
+                text_color = self.palette["text_main"] if sorted_matrix[row_index, col_index] < 0.58 * max_abs_interaction else "white"
+                ax.text(
+                    col_index,
+                    row_index,
+                    self._format_interaction_value(abs_value),
+                    ha="center",
+                    va="center",
+                    fontsize=font_size,
+                    fontweight="bold",
+                    color=text_color,
+                )
+        colorbar = fig.colorbar(image, ax=ax, fraction=0.04, pad=0.03)
+        colorbar.set_label("mean(|SHAP interaction value|)")
+        ax.set_title("Mean absolute SHAP interaction strength", loc="left", fontsize=16, fontweight="bold")
         return fig
+
+    def _format_interaction_value(self, value: float) -> str:
+        abs_value = abs(float(value))
+        if not np.isfinite(abs_value):
+            return "n/a"
+        if abs_value == 0.0:
+            return "0"
+        if abs_value >= 100.0:
+            return f"{abs_value:.0f}"
+        if abs_value >= 10.0:
+            return f"{abs_value:.1f}"
+        if abs_value >= 1.0:
+            return f"{abs_value:.2f}"
+        if abs_value >= 0.1:
+            return f"{abs_value:.3f}"
+        if abs_value >= 0.01:
+            return f"{abs_value:.4f}"
+        return f"{abs_value:.2g}"
 
     def _scatter_plot(self, scatter: dict[str, Any]):
         import matplotlib.pyplot as plt

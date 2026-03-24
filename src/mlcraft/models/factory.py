@@ -21,6 +21,22 @@ class ModelFactory:
         "lightgbm": LightGBMModel,
         "catboost": CatBoostModel,
     }
+    _ALIASES = {
+        "xgb": "xgboost",
+        "lgb": "lightgbm",
+        "lgbm": "lightgbm",
+        "cat": "catboost",
+    }
+
+    @classmethod
+    def normalize_model_type(cls, model_type) -> str:
+        """Normalize backend aliases into the canonical model name."""
+
+        normalized = str(model_type).lower()
+        normalized = cls._ALIASES.get(normalized, normalized)
+        if normalized not in cls._MODELS:
+            raise ValueError(f"Unknown model_type: {model_type}")
+        return normalized
 
     @classmethod
     def create(
@@ -55,9 +71,7 @@ class ModelFactory:
             'lightgbm'
         """
 
-        normalized = str(model_type).lower()
-        if normalized not in cls._MODELS:
-            raise ValueError(f"Unknown model_type: {model_type}")
+        normalized = cls.normalize_model_type(model_type)
         return cls._MODELS[normalized](
             task_spec=task_spec,
             model_params=model_params,

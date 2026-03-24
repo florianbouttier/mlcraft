@@ -8,7 +8,6 @@ from typing import Any
 import numpy as np
 
 from mlcraft.core.results import TuningResult
-from mlcraft.errors import OptionalDependencyError
 from mlcraft.reporting.html import figure_to_data_uri, wrap_html
 from mlcraft.reporting.palette import chart_colors, get_report_palette
 from mlcraft.reporting.view_models import build_tuning_context
@@ -46,8 +45,12 @@ class TuningReportRenderer:
         sections: list[str] = []
         if context.get("title"):
             sections.append(f"<h1>{escape(str(context['title']))}</h1>")
+        if context.get("backend_summary_rows"):
+            sections.append(self._render_backend_overview(context))
         sections.append(self._render_summary_panel(context))
         sections.append(self._render_generalization_overview(context))
+        if context.get("fold_curve_groups"):
+            sections.append(self._render_fold_curves(context))
         if context.get("study") is not None:
             sections.append(self._render_optuna_visualizations(context))
         sections.append(self._render_configuration_panel(context))
@@ -68,26 +71,56 @@ class TuningReportRenderer:
         holdout_value = "n/a" if context["test_metric_value"] is None else f"{context['test_metric_value']:.6f}"
         alpha_value = f"alpha = {context['alpha']:.4f}"
         best_score = f"{context['best_score']:.6f}"
-        validation_score = f"{context['val_score']:.6f}"
+        train_metric = context["split_points"][0]["value"] if context.get("split_points") else np.nan
+        validation_metric = context["split_points"][1]["value"] if len(context.get("split_points", [])) > 1 else np.nan
         generalization_gap = f"{context['generalization_gap']:.6f}"
+        metric_label = escape(str(context["metric_name"]))
         return (
             "<section class='panel hero-panel section-stack'>"
             "<div>"
             "<span class='eyebrow'>Tuning Overview</span>"
-            f"<h2>{escape(str(context['metric_name']))} across train, validation, and test</h2>"
+            f"<h2>{metric_label} averages, folds, and backend comparison</h2>"
             "</div>"
             "<div class='kpi-grid'>"
-            f"{self._metric_card('Optimized metric', escape(str(context['metric_name'])), alpha_value)}"
+            f"{self._metric_card('Optimized metric', metric_label, alpha_value)}"
             f"{self._metric_card('Best penalized score', best_score, 'Optuna maximizes this internal score.')}"
-            f"{self._metric_card('Validation score', validation_score, 'Fold-average internal validation score.')}"
+            f"{self._metric_card(f'Average train {metric_label}', f'{train_metric:.6f}', 'Mean train metric across CV folds.')}"
+            f"{self._metric_card(f'Average validation {metric_label}', f'{validation_metric:.6f}', 'Mean validation metric across CV folds.')}"
+            f"{self._metric_card(f'Average test {metric_label}', holdout_value, 'Holdout metric after refit on the full train partition.')}"
             f"{self._metric_card('Generalization gap', generalization_gap, 'Absolute train-vs-validation score gap.')}"
-            f"{self._metric_card('Final test metric', holdout_value, 'Available only when a holdout set is provided.')}"
             "</div>"
             f"{gap_badge}"
             "</section>"
         )
 
     def _render_generalization_overview(self, context: dict[str, Any]) -> str:
+        try:
+            return self._render_generalization_overview_plotly(context)
+        except Exception:
+            return self._render_generalization_overview_matplotlib(context)
+
+    def _render_generalization_overview_plotly(self, context: dict[str, Any]) -> str:
+        figures = [
+            ("Optimized Metric by Fold", self._plot_fold_metric_lines(context), True),
+            ("Generalization Gap by Fold", self._plot_generalization_gap(context), True),
+        ]
+        figures.extend(
+            (f"{metric_name} by Fold", self._plot_metric_by_fold(context, metric_name), True)
+            for metric_name in self._ordered_fold_metrics(context)
+        )
+        return (
+            "<section class='panel section-stack'>"
+            "<div>"
+            "<span class='eyebrow'>Generalization Overview</span>"
+            "<h2>Each KPI shows train and validation side by side for every fold</h2>"
+            "</div>"
+            "<div class='viz-grid'>"
+            f"{''.join(self._plotly_cards(figures))}"
+            "</div>"
+            "</section>"
+        )
+
+    def _render_generalization_overview_matplotlib(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
         split_fig = self._plot_split_journey(context)
@@ -109,6 +142,60 @@ class TuningReportRenderer:
             plt.close(split_fig)
             plt.close(fold_fig)
 
+    def _render_backend_overview(self, context: dict[str, Any]) -> str:
+        rows = context.get("backend_summary_rows") or []
+        if not rows:
+            return ""
+        selected_row = next((row for row in rows if row["is_selected"]), rows[0])
+        metric_label = escape(str(context["metric_name"]))
+        selected_best_score = f"{selected_row['best_score']:.6f}"
+        selected_validation = f"{selected_row['val_metric_value']:.6f}"
+        selected_test = "n/a" if selected_row["test_metric_value"] is None else f"{selected_row['test_metric_value']:.6f}"
+        try:
+            figures = [
+                ("Backend Metric Averages", self._plot_backend_metric_averages(context), True),
+                ("Backend Penalized Score Ranking", self._plot_backend_penalized_scores(context), False),
+            ]
+            charts = "".join(self._plotly_cards(figures))
+        except Exception:
+            charts = "<div class='card'><p class='muted'>Backend visuals could not be rendered in this environment.</p></div>"
+
+        table_rows = []
+        for row in rows:
+            selected_badge = " <span class='badge'>selected</span>" if row["is_selected"] else ""
+            test_value = "n/a" if row["test_metric_value"] is None else f"{row['test_metric_value']:.6f}"
+            table_rows.append(
+                "<tr>"
+                f"<td>{escape(row['backend_name'])}{selected_badge}</td>"
+                f"<td>{row['best_score']:.6f}</td>"
+                f"<td>{row['train_metric_value']:.6f}</td>"
+                f"<td>{row['val_metric_value']:.6f}</td>"
+                f"<td>{test_value}</td>"
+                "</tr>"
+            )
+        return (
+            "<section class='panel section-stack'>"
+            "<div>"
+            "<span class='eyebrow'>Backend Comparison</span>"
+            "<h2>Best backend first, then the full framework comparison</h2>"
+            "</div>"
+            "<div class='kpi-grid'>"
+            f"{self._metric_card('Best backend', escape(selected_row['backend_name']), 'Winning framework before fold-level inspection.')}"
+            f"{self._metric_card('Best penalized score', selected_best_score, 'The backend winner on the Optuna objective.')}"
+            f"{self._metric_card(f'Validation {metric_label}', selected_validation, 'Mean validation metric for the winning backend.')}"
+            f"{self._metric_card(f'Test {metric_label}', selected_test, 'Mean holdout metric after final refit.')}"
+            "</div>"
+            "<div class='viz-grid'>"
+            f"{charts}"
+            "<div class='card card--wide'>"
+            "<span class='eyebrow'>Backend Summary Table</span>"
+            "<table><thead><tr><th>Backend</th><th>Best penalized score</th><th>Average train metric</th><th>Average validation metric</th><th>Average test metric</th></tr></thead><tbody>"
+            + "".join(table_rows)
+            + "</tbody></table></div>"
+            "</div>"
+            "</section>"
+        )
+
     def _render_optuna_visualizations(self, context: dict[str, Any]) -> str:
         sections = [
             "<section class='panel section-stack'>",
@@ -124,6 +211,14 @@ class TuningReportRenderer:
 
     def _render_configuration_panel(self, context: dict[str, Any]) -> str:
         narrative_cards = []
+        if context.get("selected_model_type"):
+            narrative_cards.append(
+                self._metric_card(
+                    "Selected backend",
+                    str(context["selected_model_type"]),
+                    "Best validation-penalized Optuna search across candidate frameworks.",
+                )
+            )
         if context.get("best_fold") is not None:
             narrative_cards.append(
                 self._metric_card(
@@ -145,6 +240,25 @@ class TuningReportRenderer:
             for key, value in context["best_params"].items()
         )
         empty_chip = "<span class='muted'>No tuned parameters were recorded.</span>"
+        comparison_rows = []
+        for model_type, payload in context.get("backend_comparison", {}).items():
+            comparison_rows.append(
+                "<tr>"
+                f"<td>{escape(str(model_type))}</td>"
+                f"<td>{payload['best_score']:.6f}</td>"
+                f"<td>{payload['val_metrics'].get(context['metric_name'], next(iter(payload['val_metrics'].values()), float('nan'))):.6f}</td>"
+                f"<td>{payload['test_metrics'].get(context['metric_name'], next(iter(payload['test_metrics'].values()), float('nan'))) if payload['test_metrics'] else float('nan'):.6f}</td>"
+                "</tr>"
+            )
+        comparison_table = ""
+        if comparison_rows:
+            comparison_table = (
+                "<div class='card card--wide'>"
+                "<span class='eyebrow'>Backend Comparison</span>"
+                "<table><thead><tr><th>Backend</th><th>Best score</th><th>Validation metric</th><th>Test metric</th></tr></thead><tbody>"
+                + "".join(comparison_rows)
+                + "</tbody></table></div>"
+            )
         return (
             "<section class='panel section-stack'>"
             "<div>"
@@ -153,10 +267,27 @@ class TuningReportRenderer:
             "</div>"
             f"<div class='chip-cloud'>{chips or empty_chip}</div>"
             f"<div class='kpi-grid'>{''.join(narrative_cards)}</div>"
+            f"{comparison_table}"
             "</section>"
         )
 
     def _render_holdout_curves(self, context: dict[str, Any]) -> str:
+        try:
+            return (
+                "<section class='panel section-stack'>"
+                "<div>"
+                "<span class='eyebrow'>Final Test Curves</span>"
+                "<h2>Holdout behavior</h2>"
+                "</div>"
+                "<div class='viz-grid'>"
+                f"{''.join(self._plotly_cards([(group['title'], self._plot_curve_group_figure(group), True) for group in context['holdout_curve_groups']]))}"
+                "</div>"
+                "</section>"
+            )
+        except Exception:
+            return self._render_holdout_curves_matplotlib(context)
+
+    def _render_holdout_curves_matplotlib(self, context: dict[str, Any]) -> str:
         import matplotlib.pyplot as plt
 
         figures = self._plot_curve_groups(context["holdout_curve_groups"])
@@ -176,6 +307,26 @@ class TuningReportRenderer:
                 plt.close(figure)
         sections.append("</div></section>")
         return "".join(sections)
+
+    def _render_fold_curves(self, context: dict[str, Any]) -> str:
+        curve_groups = context.get("fold_curve_groups") or []
+        if not curve_groups:
+            return ""
+        try:
+            cards = self._plotly_cards([(group["title"], self._plot_curve_group_figure(group), True) for group in curve_groups])
+        except Exception:
+            cards = ["<div class='card'><p class='muted'>Fold-level curves could not be rendered in this environment.</p></div>"]
+        return (
+            "<section class='panel section-stack'>"
+            "<div>"
+            "<span class='eyebrow'>Fold Curves</span>"
+            "<h2>ROC, PR, calibration, and task-specific curves on train and validation for each fold</h2>"
+            "</div>"
+            "<div class='viz-grid'>"
+            f"{''.join(cards)}"
+            "</div>"
+            "</section>"
+        )
 
     def _plot_split_journey(self, context: dict[str, Any]):
         import matplotlib.pyplot as plt
@@ -227,7 +378,10 @@ class TuningReportRenderer:
         return fig
 
     def _optuna_plots(self, context: dict[str, Any]) -> list[str]:
-        return self._optuna_plotly_cards(context)
+        try:
+            return self._optuna_plotly_cards(context)
+        except Exception:
+            return ["<div class='card'><p class='muted'>Official Optuna visualizations could not be rendered in this environment.</p></div>"]
 
     def _optuna_plotly_cards(self, context: dict[str, Any]) -> list[str]:
         optional_import("plotly", extra_name="reporting")
@@ -261,8 +415,246 @@ class TuningReportRenderer:
             except Exception:
                 continue
         if not cards:
-            raise OptionalDependencyError("Official Optuna Plotly visualizations could not be rendered.")
+            raise RuntimeError("Official Optuna Plotly visualizations could not be rendered.")
         return cards
+
+    def _plotly_cards(self, figures: list[tuple[str, object, bool]]) -> list[str]:
+        optional_import("plotly", extra_name="reporting")
+        import plotly.io as pio
+
+        cards: list[str] = []
+        include_js = True
+        for title, figure, wide in figures:
+            fragment = pio.to_html(
+                figure,
+                full_html=False,
+                include_plotlyjs="inline" if include_js else False,
+                config={"displayModeBar": True, "responsive": True, "scrollZoom": True},
+            )
+            include_js = False
+            wide_class = " card--wide" if wide else ""
+            cards.append(
+                f"<div class='card plotly-card{wide_class}'>"
+                f"<span class='eyebrow'>{escape(title)}</span>"
+                f"{fragment}"
+                "</div>"
+            )
+        return cards
+
+    def _plot_backend_metric_averages(self, context: dict[str, Any]):
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        rows = context["backend_summary_rows"]
+        backends = [row["backend_name"] for row in rows]
+        figure = go.Figure()
+        figure.add_bar(name="Train", x=backends, y=[row["train_metric_value"] for row in rows], marker_color=self.palette["accent"])
+        figure.add_bar(name="Validation", x=backends, y=[row["val_metric_value"] for row in rows], marker_color=self.palette["series_2"])
+        test_values = [row["test_metric_value"] for row in rows]
+        if any(value is not None for value in test_values):
+            figure.add_bar(
+                name="Test",
+                x=backends,
+                y=[np.nan if value is None else value for value in test_values],
+                marker_color=self.palette["series_3"],
+            )
+        figure.update_layout(
+            barmode="group",
+            title=f"Average {context['metric_name']} by backend",
+            xaxis_title="Backend",
+            yaxis_title=context["metric_name"],
+            legend_title="Split",
+            template="plotly_white",
+        )
+        return figure
+
+    def _plot_backend_penalized_scores(self, context: dict[str, Any]):
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        rows = context["backend_summary_rows"]
+        colors = [self.palette["accent"] if row["is_selected"] else self.palette["series_muted"] for row in rows]
+        figure = go.Figure(
+            go.Bar(
+                x=[row["best_score"] for row in rows],
+                y=[row["backend_name"] for row in rows],
+                orientation="h",
+                marker_color=colors,
+                text=[f"{row['best_score']:.6f}" for row in rows],
+                textposition="outside",
+            )
+        )
+        figure.update_layout(
+            title="Best penalized score by backend",
+            xaxis_title="Best penalized score",
+            yaxis_title="Backend",
+            template="plotly_white",
+        )
+        return figure
+
+    def _ordered_fold_metrics(self, context: dict[str, Any]) -> list[str]:
+        ordered = [str(context["metric_name"])]
+        for row in context.get("fold_metric_rows", []):
+            metric_name = str(row["metric_name"])
+            if metric_name not in ordered:
+                ordered.append(metric_name)
+        return ordered
+
+    def _plot_fold_metric_lines(self, context: dict[str, Any]):
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        folds = context["fold_points"]
+        fold_index = [f"Fold {point['fold_index']}" for point in folds]
+        train_values = [point["train_metric_value"] for point in folds]
+        val_values = [point["val_metric_value"] for point in folds]
+        penalized_values = [point["penalized_score"] for point in folds]
+        figure = go.Figure()
+        figure.add_trace(
+            go.Scatter(
+                x=fold_index,
+                y=train_values,
+                mode="lines+markers+text",
+                name="Train",
+                line={"color": self.palette["accent"], "width": 3},
+                text=[f"{value:.6f}" for value in train_values],
+                textposition="top center",
+            )
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=fold_index,
+                y=val_values,
+                mode="lines+markers+text",
+                name="Validation",
+                line={"color": self.palette["series_2"], "width": 3},
+                text=[f"{value:.6f}" for value in val_values],
+                textposition="top center",
+            )
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=fold_index,
+                y=penalized_values,
+                mode="lines+markers",
+                name="Penalized score",
+                line={"color": self.palette["danger"], "width": 2, "dash": "dot"},
+            )
+        )
+        figure.update_layout(
+            title=f"Optimized metric ({context['metric_name']}) by fold",
+            xaxis_title="Fold",
+            yaxis_title=context["metric_name"],
+            template="plotly_white",
+        )
+        return figure
+
+    def _plot_generalization_gap(self, context: dict[str, Any]):
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        folds = context["fold_points"]
+        figure = go.Figure(
+            go.Bar(
+                x=[f"Fold {point['fold_index']}" for point in folds],
+                y=[abs(float(point["gap"])) for point in folds],
+                marker_color=self.palette["danger"],
+                text=[f"{abs(float(point['gap'])):.6f}" for point in folds],
+                textposition="outside",
+            )
+        )
+        figure.update_layout(
+            title="Generalization gap by fold",
+            xaxis_title="Fold",
+            yaxis_title="Absolute train-vs-validation score gap",
+            template="plotly_white",
+        )
+        return figure
+
+    def _plot_metric_by_fold(self, context: dict[str, Any], metric_name: str):
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        rows = [row for row in context["fold_metric_rows"] if str(row["metric_name"]) == str(metric_name)]
+        fold_labels = sorted({int(row["fold_index"]) for row in rows})
+        train_map = {int(row["fold_index"]): float(row["value"]) for row in rows if row["split"] == "train"}
+        validation_map = {int(row["fold_index"]): float(row["value"]) for row in rows if row["split"] == "validation"}
+        x_values = [f"Fold {fold_index}" for fold_index in fold_labels]
+        train_values = [train_map.get(fold_index, np.nan) for fold_index in fold_labels]
+        validation_values = [validation_map.get(fold_index, np.nan) for fold_index in fold_labels]
+
+        figure = go.Figure()
+        figure.add_bar(
+            name="Train",
+            x=x_values,
+            y=train_values,
+            marker_color=self.palette["accent"],
+            text=[("" if np.isnan(value) else f"{value:.6f}") for value in train_values],
+            textposition="outside",
+        )
+        figure.add_bar(
+            name="Validation",
+            x=x_values,
+            y=validation_values,
+            marker_color=self.palette["series_2"],
+            text=[("" if np.isnan(value) else f"{value:.6f}") for value in validation_values],
+            textposition="outside",
+        )
+        figure.update_layout(
+            barmode="group",
+            title=f"{metric_name} by fold",
+            xaxis_title="Fold",
+            yaxis_title=metric_name,
+            template="plotly_white",
+        )
+        return figure
+
+    def _plot_curve_group_figure(self, curve_group: dict[str, Any]):
+        optional_import("plotly", extra_name="reporting")
+        import plotly.graph_objects as go
+
+        figure = go.Figure()
+        colors = chart_colors(self.palette)
+        for index, series in enumerate(curve_group["series"]):
+            fold_index = series.get("fold_index")
+            split_name = series.get("split")
+            color = colors[int(fold_index) % len(colors)] if fold_index is not None else colors[index % len(colors)]
+            dash = "dash" if split_name == "validation" else "solid"
+            legend_group = f"fold_{fold_index}" if fold_index is not None else f"series_{index}"
+            figure.add_trace(
+                go.Scatter(
+                    x=series["x"],
+                    y=series["y"],
+                    mode="lines",
+                    name=series.get("series_name", series.get("prediction_name", "series")),
+                    line={"color": color, "dash": dash, "width": 2.8},
+                    legendgroup=legend_group,
+                    hovertemplate=(
+                        f"{escape(series.get('series_name', 'series'))}<br>"
+                        + f"{escape(curve_group['x_label'])}=%{{x:.6f}}<br>"
+                        + f"{escape(curve_group['y_label'])}=%{{y:.6f}}<extra></extra>"
+                    ),
+                )
+            )
+        if curve_group["curve_name"] in {"roc", "calibration", "poisson_calibration"}:
+            diagonal_start = min(min(series["x"] or [0.0]) for series in curve_group["series"])
+            diagonal_end = max(max(series["x"] or [1.0]) for series in curve_group["series"])
+            figure.add_trace(
+                go.Scatter(
+                    x=[diagonal_start, diagonal_end],
+                    y=[diagonal_start, diagonal_end],
+                    mode="lines",
+                    name="Diagonal",
+                    line={"color": self.palette["grid_soft"], "dash": "dot"},
+                )
+            )
+        figure.update_layout(
+            title=curve_group["title"],
+            xaxis_title=curve_group["x_label"],
+            yaxis_title=curve_group["y_label"],
+            template="plotly_white",
+        )
+        return figure
 
     def _plot_curve_groups(self, curve_groups: list[dict[str, Any]]) -> list[tuple[str, object]]:
         import matplotlib.pyplot as plt
