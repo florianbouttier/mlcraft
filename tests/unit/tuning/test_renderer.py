@@ -1,7 +1,6 @@
 import pytest
 
 import numpy as np
-import optuna
 
 from mlcraft.core.results import CurveData, EvaluationResult, FoldSummary, MetricRow, ShapResult, TrialSummary, TuningResult
 from mlcraft.core.task import TaskSpec
@@ -45,103 +44,84 @@ def test_tuning_renderer_generates_html():
         ),
     )
     html = TuningReportRenderer().render(result)
-    assert "Generalization Overview" in html
+    assert "KPI Matrix" in html
+    assert "Metric Explorer" in html
+    assert "Train, validation, and holdout summary for every tracked metric" in html
     assert "Holdout behavior" in html
     assert "Backend Comparison" in html
-    assert "Optimized Metric by Fold" in html
-    assert "Generalization Gap by Fold" in html
-    assert "rmse by Fold" in html
+    assert "How the search moved across trials" in html
     assert "Fold Curves" in html
-    assert html.find("Backend Comparison") < html.find("Tuning Overview")
+    assert html.find("KPI Matrix") < html.find("Tuning Overview")
     assert "Optuna Plotly" not in html
+    assert "data-toggle-group='tuning-metrics'" in html
 
     context = TuningReportRenderer().build_context(result)
     assert isinstance(context, dict)
     assert context["metric_name"] == "rmse"
     assert context["split_points"][0]["label"] == "train"
+    assert context["metric_catalog"][0]["metric_name"] == "rmse"
 
 
-def test_tuning_renderer_renders_official_optuna_visuals():
+def test_tuning_renderer_renders_search_dynamics_without_plotly():
     pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
-    pytest.importorskip("plotly")
     from mlcraft.tuning.renderer import TuningReportRenderer
 
-    study = optuna.create_study(direction="maximize")
-    distribution = optuna.distributions.FloatDistribution(0.01, 0.2)
-    study.add_trial(
-        optuna.trial.create_trial(
-            params={"learning_rate": 0.05},
-            distributions={"learning_rate": distribution},
-            value=0.81,
-        )
-    )
-    study.add_trial(
-        optuna.trial.create_trial(
-            params={"learning_rate": 0.08},
-            distributions={"learning_rate": distribution},
-            value=0.87,
-        )
-    )
-
     fold = FoldSummary(0, {"rmse": 0.1}, {"rmse": 0.2}, -0.1, -0.2, -0.2)
-    trial = TrialSummary(0, {"learning_rate": 0.08}, {"rmse": 0.1}, {"rmse": 0.2}, -0.1, -0.2, -0.2, [fold])
+    trial_0 = TrialSummary(0, {"learning_rate": 0.05}, {"rmse": 0.1}, {"rmse": 0.21}, -0.1, -0.21, -0.22, [fold])
+    trial_1 = TrialSummary(1, {"learning_rate": 0.08}, {"rmse": 0.1}, {"rmse": 0.2}, -0.1, -0.2, -0.2, [fold])
     result = TuningResult(
         task_spec=TaskSpec(task_type="regression"),
         best_params={"learning_rate": 0.08},
-        best_score=0.87,
-        best_trial=trial,
-        history=[trial],
+        best_score=-0.2,
+        best_trial=trial_1,
+        history=[trial_0, trial_1],
         train_metrics={"rmse": 0.1},
         val_metrics={"rmse": 0.2},
-        penalized_score=0.87,
+        penalized_score=-0.2,
         fold_summaries=[fold],
         alpha=0.0,
         metric_name="rmse",
-        study=study,
     )
 
     html = TuningReportRenderer().render(result)
-    assert "Optimization History" in html
-    assert "Optuna Plotly" in html
+    assert "Search Dynamics" in html
+    assert "Trial History" in html
+    assert "Top Trials" in html
+    assert "Optuna Plotly" not in html
 
 
-def test_tuning_curve_plot_keeps_same_color_per_fold_and_dash_per_split():
-    pytest.importorskip("plotly")
+def test_tuning_renderer_metric_catalog_includes_multiple_metrics():
     from mlcraft.tuning.renderer import TuningReportRenderer
 
-    curve_group = {
-        "curve_name": "roc",
-        "title": "Roc by fold",
-        "x_label": "False positive rate",
-        "y_label": "True positive rate",
-        "series": [
-            {
-                "series_name": "Fold 0 Train",
-                "prediction_name": "train",
-                "fold_index": 0,
-                "split": "train",
-                "x": [0.0, 1.0],
-                "y": [0.0, 1.0],
-                "metadata": {},
-            },
-            {
-                "series_name": "Fold 0 Validation",
-                "prediction_name": "validation",
-                "fold_index": 0,
-                "split": "validation",
-                "x": [0.0, 1.0],
-                "y": [0.0, 0.8],
-                "metadata": {},
-            },
-        ],
-    }
+    fold = FoldSummary(
+        0,
+        {"rmse": 0.1, "mae": 0.08},
+        {"rmse": 0.2, "mae": 0.14},
+        -0.1,
+        -0.2,
+        -0.2,
+    )
+    trial = TrialSummary(0, {"depth": 4}, {"rmse": 0.1, "mae": 0.08}, {"rmse": 0.2, "mae": 0.14}, -0.1, -0.2, -0.2, [fold])
+    result = TuningResult(
+        task_spec=TaskSpec(task_type="regression"),
+        best_params={"depth": 4},
+        best_score=-0.2,
+        best_trial=trial,
+        history=[trial],
+        train_metrics={"rmse": 0.1, "mae": 0.08},
+        val_metrics={"rmse": 0.2, "mae": 0.14},
+        penalized_score=-0.2,
+        fold_summaries=[fold],
+        alpha=0.0,
+        metric_name="rmse",
+    )
 
-    figure = TuningReportRenderer()._plot_curve_group_figure(curve_group)
+    context = TuningReportRenderer().build_context(result)
+    metric_names = [item["metric_name"] for item in context["metric_catalog"]]
 
-    assert figure.data[0].line.color == figure.data[1].line.color
-    assert figure.data[0].line.dash == "solid"
-    assert figure.data[1].line.dash == "dash"
+    assert metric_names == ["rmse", "mae"]
+    assert context["metric_catalog"][1]["fold_rows"][0]["train_value"] == pytest.approx(0.08)
 
 
 def test_tuning_artifact_writer_writes_report_and_json(tmp_path):

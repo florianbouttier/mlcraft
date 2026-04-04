@@ -236,6 +236,70 @@ def build_tuning_context(result: TuningResult, *, title: str | None = "mlcraft T
     worst_fold = min(fold_points, key=lambda fold: fold["val_score"]) if fold_points else None
     fold_metric_rows = build_fold_metric_rows(result.fold_summaries)
     fold_curve_groups = build_fold_curve_groups(result.fold_summaries)
+    metric_order: list[str] = [str(metric_name)]
+    for source in (result.train_metrics, result.val_metrics, result.test_metrics or {}):
+        for candidate in source:
+            name = str(candidate)
+            if name not in metric_order:
+                metric_order.append(name)
+    for row in fold_metric_rows:
+        name = str(row["metric_name"])
+        if name not in metric_order:
+            metric_order.append(name)
+
+    metric_catalog = []
+    for candidate in metric_order:
+        candidate_rows = [row for row in fold_metric_rows if str(row["metric_name"]) == candidate]
+        higher_is_better = next((bool(row["higher_is_better"]) for row in candidate_rows), candidate == str(metric_name) and result.task_spec.higher_is_better)
+        train_value = float(result.train_metrics.get(candidate, np.nan))
+        val_value = float(result.val_metrics.get(candidate, np.nan))
+        test_value = None if not result.test_metrics or candidate not in result.test_metrics else float(result.test_metrics[candidate])
+        score_gap = None
+        if not np.isnan(train_value) and not np.isnan(val_value):
+            score_gap = float((val_value - train_value) if higher_is_better else (train_value - val_value))
+        holdout_delta = None
+        if test_value is not None and not np.isnan(val_value):
+            holdout_delta = float((test_value - val_value) if higher_is_better else (val_value - test_value))
+        fold_rows = []
+        for fold in result.fold_summaries:
+            fold_train = fold.train_metrics.get(candidate)
+            fold_val = fold.val_metrics.get(candidate)
+            if fold_train is None and fold_val is None:
+                continue
+            fold_rows.append(
+                {
+                    "fold_index": int(fold.fold_index),
+                    "train_value": None if fold_train is None else float(fold_train),
+                    "val_value": None if fold_val is None else float(fold_val),
+                    "score_gap": None
+                    if fold_train is None or fold_val is None
+                    else float((float(fold_val) - float(fold_train)) if higher_is_better else (float(fold_train) - float(fold_val))),
+                }
+            )
+        metric_catalog.append(
+            {
+                "metric_name": candidate,
+                "selected": candidate == str(metric_name),
+                "higher_is_better": bool(higher_is_better),
+                "train_value": train_value,
+                "val_value": val_value,
+                "test_value": test_value,
+                "score_gap": score_gap,
+                "holdout_delta": holdout_delta,
+                "fold_rows": fold_rows,
+            }
+        )
+
+    history_rows = [
+        {
+            "trial_number": int(trial.trial_number),
+            "train_score": float(trial.train_score),
+            "val_score": float(trial.val_score),
+            "penalized_score": float(trial.penalized_score),
+            "params": {str(key): value for key, value in trial.params.items()},
+        }
+        for trial in result.history
+    ]
     selected_model_type = result.metadata.get("selected_model_type", result.metadata.get("model_type"))
     backend_results = result.metadata.get("backend_results")
     if not backend_results:
@@ -271,16 +335,17 @@ def build_tuning_context(result: TuningResult, *, title: str | None = "mlcraft T
         "split_points": split_points,
         "fold_points": fold_points,
         "fold_metric_rows": fold_metric_rows,
+        "metric_catalog": metric_catalog,
         "fold_curve_groups": fold_curve_groups,
         "best_fold": best_fold,
         "worst_fold": worst_fold,
+        "history_rows": history_rows,
         "test_metric_value": None if not result.test_metrics else float(result.test_metrics.get(metric_name, next(iter(result.test_metrics.values()), np.nan))),
         "test_score": None if result.test_score is None else float(result.test_score),
         "holdout_curve_groups": [] if result.test_evaluation is None else build_curve_groups(result.test_evaluation.curves),
         "selected_model_type": selected_model_type,
         "backend_comparison": result.metadata.get("backend_comparison", {}),
         "backend_summary_rows": backend_summary_rows,
-        "optuna_plots": ["optimization_history", "parallel_coordinate", "slice"],
         "study": result.study,
     }
 

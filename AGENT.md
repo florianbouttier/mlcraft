@@ -63,7 +63,7 @@ This is the current implemented architecture:
 - `reporting/`
   - shared HTML helpers
   - `html.py` contains the shared HTML shell
-  - `palette.py` contains the centralized report palette and chart colors
+  - `palette.py` contains the centralized report palette, typography tokens, and surface design tokens
   - `view_models.py` contains dictionary-based report contexts consumed by renderers
   - `full_report.py` contains `FullReportBuilder`
 - `utils/`
@@ -94,6 +94,7 @@ Existing interactions that should be preserved:
 - `ShapAnalyzer.compute()` returns a `ShapResult`.
 - `FullReportBuilder.build()` combines `EvaluationResult`, `TuningResult`, and `ShapResult`.
 - Reporting renderers build dictionary contexts first, then render HTML from those contexts.
+- The tuning report currently uses lightweight HTML/CSS/JS controls and inline SVG-style visuals instead of Plotly.
 
 ## 3. Core Design Principles
 
@@ -240,7 +241,8 @@ Rules:
   - `reporting/full_report.py`
 - shared reporting palette stays in `reporting/palette.py`
 - dictionary view-model builders stay in `reporting/view_models.py`
-- Optuna study plots must use the official Optuna Plotly visualizations when a study is available
+- when changing report design, prefer `reporting/palette.py` and `reporting/html.py` first so the look stays centrally configurable
+- the tuning report should stay fast, lightweight, and browsable with HTML-native controls for metric selection
 
 ## 11. SHAP Rules
 

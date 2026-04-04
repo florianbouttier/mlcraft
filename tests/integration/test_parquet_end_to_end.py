@@ -191,7 +191,6 @@ def test_parquet_kfold_end_to_end_writes_tuning_artifacts(
     pytest.importorskip("optuna")
     pytest.importorskip("jinja2")
     pytest.importorskip("matplotlib")
-    pytest.importorskip("plotly")
     X, y_regression, y_classification = btcusdt_parquet_data
     y = y_regression if target_key == "regression" else y_classification
 
@@ -214,7 +213,8 @@ def test_parquet_kfold_end_to_end_writes_tuning_artifacts(
     report_html = artifacts.report_path.read_text(encoding="utf-8")
     result_json = artifacts.result_path.read_text(encoding="utf-8")
     full_report_html = artifacts.full_report_path.read_text(encoding="utf-8")
-    assert "Optuna Plotly" in report_html
+    assert "Search Dynamics" in report_html
+    assert "Metric Explorer" in report_html
     assert "Holdout behavior" in report_html
     assert f'"metric_name": "{expected_metric}"' in result_json
     assert '"test_metrics"' in result_json
