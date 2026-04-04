@@ -44,3 +44,16 @@ def temporal_data():
     y = np.array([10, 20, 30, 40, 50])
     return X, y
 
+
+@pytest.fixture
+def btcusdt_parquet_data():
+    pyarrow = pytest.importorskip("pyarrow.parquet")
+    table = pyarrow.read_table("tests/btcusdt_regression_h4.parquet")
+    X = {
+        name: table[name].to_numpy(zero_copy_only=False)
+        for name in table.column_names
+        if name not in {"target_regression", "future_return"}
+    }
+    y_regression = table["target_regression"].to_numpy(zero_copy_only=False).astype(float)
+    y_classification = (y_regression > 0.0).astype(int)
+    return X, y_regression, y_classification

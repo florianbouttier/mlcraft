@@ -10,7 +10,7 @@ from mlcraft.shap.analyzer import ShapAnalyzer
 from mlcraft.shap.renderer import ShapReportRenderer
 
 
-@dataclass(slots=True)
+@dataclass
 class ShapArtifacts:
     """Describe the files produced for one SHAP run."""
 

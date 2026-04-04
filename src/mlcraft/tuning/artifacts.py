@@ -12,7 +12,7 @@ from mlcraft.shap.renderer import ShapReportRenderer
 from mlcraft.tuning.renderer import TuningReportRenderer
 
 
-@dataclass(slots=True)
+@dataclass
 class TuningArtifacts:
     """Describe the files produced for one tuning run."""
 
