@@ -94,7 +94,7 @@ Existing interactions that should be preserved:
 - `ShapAnalyzer.compute()` returns a `ShapResult`.
 - `FullReportBuilder.build()` combines `EvaluationResult`, `TuningResult`, and `ShapResult`.
 - Reporting renderers build dictionary contexts first, then render HTML from those contexts.
-- The tuning report currently uses lightweight HTML/CSS/JS controls and inline SVG-style visuals instead of Plotly.
+- All report HTML is now driven by shared D3.js helpers in `reporting/html.py`, with dictionary contexts built in `reporting/view_models.py`.
 
 ## 3. Core Design Principles
 
@@ -242,7 +242,8 @@ Rules:
 - shared reporting palette stays in `reporting/palette.py`
 - dictionary view-model builders stay in `reporting/view_models.py`
 - when changing report design, prefer `reporting/palette.py` and `reporting/html.py` first so the look stays centrally configurable
-- the tuning report should stay fast, lightweight, and browsable with HTML-native controls for metric selection
+- keep report interactivity centralized in the shared D3/HTML shell rather than scattering custom JavaScript across modules
+- reports should stay fast, lightweight, and browsable with HTML-native controls for metric and view selection
 
 ## 11. SHAP Rules
 

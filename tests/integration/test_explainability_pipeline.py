@@ -7,7 +7,6 @@ from mlcraft.reporting.full_report import FullReportBuilder
 
 
 def test_full_report_builder_combines_sections():
-    pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
     evaluation = EvaluationResult(
         task_spec=TaskSpec(task_type="regression"),

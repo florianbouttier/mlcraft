@@ -7,7 +7,6 @@ from mlcraft.core.task import TaskSpec
 
 
 def test_tuning_renderer_generates_html():
-    pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
     from mlcraft.tuning.renderer import TuningReportRenderer
 
@@ -51,8 +50,8 @@ def test_tuning_renderer_generates_html():
     assert "Backend Comparison" in html
     assert "How the search moved across trials" in html
     assert "Fold Curves" in html
+    assert "cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" in html
     assert html.find("KPI Matrix") < html.find("Tuning Overview")
-    assert "Optuna Plotly" not in html
     assert "data-toggle-group='tuning-metrics'" in html
 
     context = TuningReportRenderer().build_context(result)
@@ -63,7 +62,6 @@ def test_tuning_renderer_generates_html():
 
 
 def test_tuning_renderer_renders_search_dynamics_without_plotly():
-    pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
     from mlcraft.tuning.renderer import TuningReportRenderer
 
@@ -88,7 +86,7 @@ def test_tuning_renderer_renders_search_dynamics_without_plotly():
     assert "Search Dynamics" in html
     assert "Trial History" in html
     assert "Top Trials" in html
-    assert "Optuna Plotly" not in html
+    assert "window.mlcraftPendingCharts" in html
 
 
 def test_tuning_renderer_metric_catalog_includes_multiple_metrics():
@@ -125,7 +123,6 @@ def test_tuning_renderer_metric_catalog_includes_multiple_metrics():
 
 
 def test_tuning_artifact_writer_writes_report_and_json(tmp_path):
-    pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
     from mlcraft.tuning.artifacts import write_tuning_artifacts
 
@@ -156,7 +153,6 @@ def test_tuning_artifact_writer_writes_report_and_json(tmp_path):
 
 
 def test_tuning_artifact_writer_writes_full_and_shap_reports(tmp_path):
-    pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
     from mlcraft.tuning.artifacts import write_tuning_artifacts
 

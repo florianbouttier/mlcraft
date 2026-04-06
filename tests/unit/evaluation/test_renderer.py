@@ -6,7 +6,6 @@ from mlcraft.evaluation.evaluator import Evaluator
 
 
 def test_evaluation_renderer_generates_html():
-    pytest.importorskip("matplotlib")
     pytest.importorskip("jinja2")
     from mlcraft.evaluation.renderer import EvaluationReportRenderer
 
@@ -16,10 +15,11 @@ def test_evaluation_renderer_generates_html():
     )
     html = EvaluationReportRenderer().render(result)
     assert "mlcraft Evaluation Report" in html
-    assert "Graphical leaderboard" in html
+    assert "Graphical Leaderboard" in html
     assert "Curves on shared axes" in html
-    assert "Plot Zoom" not in html
+    assert "cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" in html
     assert "data-toggle-group='tuning-metrics'" not in html
+    assert "data-toggle-group='evaluation-metrics'" in html
 
 
 def test_evaluation_renderer_builds_dictionary_context():

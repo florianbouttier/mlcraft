@@ -149,7 +149,6 @@ def test_parquet_time_split_end_to_end_writes_evaluation_artifacts(
     expected_metric,
 ):
     pytest.importorskip("jinja2")
-    pytest.importorskip("matplotlib")
     X, y_regression, y_classification = btcusdt_parquet_data
     y = y_regression if target_key == "regression" else y_classification
 
@@ -167,7 +166,7 @@ def test_parquet_time_split_end_to_end_writes_evaluation_artifacts(
         html_path,
         json_path,
         full_path,
-        html_marker="Graphical leaderboard",
+        html_marker="Graphical Leaderboard",
         json_marker=f'"metric_name": "{expected_metric}"',
     )
 
@@ -190,7 +189,6 @@ def test_parquet_kfold_end_to_end_writes_tuning_artifacts(
 ):
     pytest.importorskip("optuna")
     pytest.importorskip("jinja2")
-    pytest.importorskip("matplotlib")
     X, y_regression, y_classification = btcusdt_parquet_data
     y = y_regression if target_key == "regression" else y_classification
 

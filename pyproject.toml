@@ -24,9 +24,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-reporting = [
-  "plotly>=5.24",
-]
 shap = [
   "shap>=0.45",
 ]
@@ -40,7 +37,6 @@ catboost = [
   "catboost>=1.2",
 ]
 all = [
-  "plotly>=5.24",
   "shap>=0.45",
   "xgboost>=2.0",
   "lightgbm>=4.0",
