@@ -1,0 +1,109 @@
+{
+  "task_spec": {
+    "task_type": "regression",
+    "loss_name": "squared_error",
+    "eval_metric": "rmse",
+    "higher_is_better": false,
+    "prediction_type": "value"
+  },
+  "metric_rows": [
+    {
+      "prediction_name": "regression_holdout",
+      "metric_name": "mae",
+      "value": 0.004113084719756373,
+      "score": -0.004113084719756373,
+      "higher_is_better": false
+    },
+    {
+      "prediction_name": "regression_holdout",
+      "metric_name": "mse",
+      "value": 2.300787157341521e-05,
+      "score": -2.300787157341521e-05,
+      "higher_is_better": false
+    },
+    {
+      "prediction_name": "regression_holdout",
+      "metric_name": "rmse",
+      "value": 0.004796652121367069,
+      "score": -0.004796652121367069,
+      "higher_is_better": false
+    },
+    {
+      "prediction_name": "regression_holdout",
+      "metric_name": "r2",
+      "value": -1.1358200466770412,
+      "score": -1.1358200466770412,
+      "higher_is_better": true
+    },
+    {
+      "prediction_name": "regression_holdout",
+      "metric_name": "medae",
+      "value": 0.004184519680358835,
+      "score": -0.004184519680358835,
+      "higher_is_better": false
+    }
+  ],
+  "curves": {
+    "regression_holdout": [
+      {
+        "name": "residuals",
+        "x": [
+          -0.007197172133830874,
+          -0.006674833042420889,
+          -0.006152493951010904,
+          -0.005630154859600918,
+          -0.005107815768190933,
+          -0.004585476676780947,
+          -0.004063137585370962,
+          -0.0035407984939609767,
+          -0.003018459402550991,
+          -0.0024961203111410054,
+          -0.0019737812197310202,
+          -0.001451442128321035,
+          -0.0009291030369110494,
+          -0.00040676394550106425,
+          0.00011557514590892094,
+          0.0006379142373189066,
+          0.0011602533287288922,
+          0.0016825924201388778,
+          0.0022049315115488634,
+          0.002727270602958848
+        ],
+        "y": [
+          8.0,
+          4.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          2.0,
+          1.0,
+          2.0,
+          1.0,
+          2.0,
+          1.0,
+          2.0,
+          1.0,
+          2.0,
+          1.0,
+          2.0,
+          1.0
+        ],
+        "x_label": "Residual",
+        "y_label": "Count",
+        "metadata": {}
+      }
+    ]
+  },
+  "metadata": {
+    "metric_names": [
+      "mae",
+      "mse",
+      "rmse",
+      "r2",
+      "medae"
+    ]
+  }
+}

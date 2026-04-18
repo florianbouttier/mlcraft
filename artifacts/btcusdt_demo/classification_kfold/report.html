@@ -1,0 +1,819 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Classification parquet tuning</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+      :root {
+        --bg-top: #f6f8fb;
+        --bg-bottom: #eef3f8;
+        --panel: rgba(255, 255, 255, 0.92);
+        --panel-strong: rgba(255, 255, 255, 0.98);
+        --panel-alt: rgba(245, 248, 252, 0.92);
+        --border: rgba(97, 118, 138, 0.16);
+        --border-strong: rgba(45, 64, 89, 0.18);
+        --text-main: #10233a;
+        --text-soft: #5d7188;
+        --text-inverse: #f8fbff;
+        --accent: #1e40af;
+        --accent-soft: #dbe7ff;
+        --accent-2: #0f766e;
+        --accent-2-soft: #dbf4ef;
+        --danger: #c2410c;
+        --danger-soft: #fff1e8;
+        --shadow: 0 24px 64px rgba(16, 35, 58, 0.08);
+        --shadow-strong: 0 30px 90px rgba(16, 35, 58, 0.12);
+        --series-1: #1e40af;
+        --series-2: #3b82f6;
+        --series-3: #f59e0b;
+        --series-4: #0f766e;
+        --series-5: #c2410c;
+        --series-6: #7c3aed;
+        --series-muted: #91a8c6;
+        --line-soft: #dce5ef;
+        --grid-soft: #94a3b8;
+        --interaction-low: #ffffff;
+        --interaction-mid: #fecaca;
+        --interaction-high: #b91c1c;
+        --font-heading: &#34;Fira Code&#34;, &#34;IBM Plex Mono&#34;, monospace;
+        --font-body: &#34;Fira Sans&#34;, &#34;IBM Plex Sans&#34;, &#34;Segoe UI&#34;, sans-serif;
+        --font-mono: &#34;Fira Code&#34;, &#34;IBM Plex Mono&#34;, monospace;
+        --radius-panel: 28px;
+        --radius-card: 22px;
+        --radius-pill: 999px;
+        --space-page-max: 1680px;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--text-main);
+        background:
+          radial-gradient(circle at top left, rgba(30, 64, 175, 0.10), transparent 28%),
+          radial-gradient(circle at top right, rgba(245, 158, 11, 0.10), transparent 32%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+        font-family: var(--font-body);
+      }
+      .page {
+        max-width: var(--space-page-max);
+        margin: 0 auto;
+        padding: 34px 26px 72px;
+      }
+      h1, h2, h3, h4 {
+        color: var(--text-main);
+        line-height: 1.04;
+        margin: 0 0 12px;
+      }
+      h1, h2 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+      }
+      h3, h4 {
+        font-family: var(--font-body);
+        font-weight: 600;
+      }
+      h1 { font-size: clamp(2.1rem, 2.5vw, 3rem); letter-spacing: -0.05em; }
+      h2 { font-size: clamp(1.35rem, 1.65vw, 2rem); letter-spacing: -0.04em; }
+      h3 { font-size: 1.05rem; letter-spacing: -0.02em; }
+      h4 { font-size: 0.95rem; letter-spacing: -0.01em; }
+      p { margin: 0; line-height: 1.6; }
+      section { margin: 0 0 24px; }
+      .section-stack {
+        display: grid;
+        gap: 22px;
+      }
+      .section-head {
+        display: grid;
+        gap: 6px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-panel);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .hero-panel {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 255, 0.96));
+        border-color: var(--border-strong);
+      }
+      .viz-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+      .kpi-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      }
+      .two-column-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 22px;
+        background: var(--panel-strong);
+        min-height: 100%;
+      }
+      .card--wide { grid-column: 1 / -1; }
+      .metric-card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 255, 0.96));
+      }
+      .card--ghost {
+        background: rgba(255, 255, 255, 0.78);
+      }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 10px;
+        color: var(--text-soft);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .metric-big {
+        display: block;
+        font-size: clamp(1.45rem, 1.8vw, 2.3rem);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        margin-bottom: 4px;
+      }
+      .metric-subtle {
+        color: var(--text-soft);
+        font-size: 0.95rem;
+      }
+      .muted { color: var(--text-soft); }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.38rem 0.78rem;
+        border-radius: var(--radius-pill);
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+      .badge--alert {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .chip-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .chip {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 0.65rem 0.9rem;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .chip strong { font-size: 0.9rem; }
+      .segmented {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 6px;
+        border-radius: var(--radius-pill);
+        background: rgba(233, 239, 247, 0.92);
+        border: 1px solid var(--border);
+      }
+      .segmented-button {
+        appearance: none;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: transparent;
+        color: var(--text-soft);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.93rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0.7rem 1rem;
+        transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+      }
+      .segmented-button:hover {
+        color: var(--text-main);
+        transform: translateY(-1px);
+      }
+      .segmented-button.is-active {
+        background: var(--panel-strong);
+        color: var(--accent);
+        box-shadow: 0 8px 20px rgba(30, 64, 175, 0.14);
+      }
+      .summary-table {
+        overflow-x: auto;
+      }
+      .summary-table table {
+        min-width: 760px;
+      }
+      .summary-table tbody tr:hover {
+        background: rgba(219, 231, 255, 0.26);
+      }
+      .table-action {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--accent);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 0.16em;
+      }
+      .delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+      }
+      .delta--positive { color: var(--accent-2); }
+      .delta--negative { color: var(--danger); }
+      .toggle-panel[hidden] {
+        display: none !important;
+      }
+      .metric-panel {
+        display: grid;
+        gap: 18px;
+      }
+      .metric-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .metric-meta .badge {
+        background: rgba(241, 245, 252, 0.98);
+        color: var(--text-main);
+      }
+      .viz-shell {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 252, 0.96));
+        padding: 16px;
+      }
+      .viz-shell svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .d3-chart {
+        width: 100%;
+      }
+      .d3-tooltip {
+        position: fixed;
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(6px);
+        transition: opacity 100ms ease, transform 100ms ease;
+        min-width: 160px;
+        max-width: 280px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.98);
+        color: var(--text-main);
+        box-shadow: var(--shadow-strong);
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+      .d3-tooltip.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .d3-axis text {
+        fill: var(--text-soft);
+        font-size: 12px;
+      }
+      .d3-axis path,
+      .d3-axis line {
+        stroke: var(--line-soft);
+      }
+      .d3-grid line {
+        stroke: var(--line-soft);
+        stroke-dasharray: 2 4;
+      }
+      .d3-grid path {
+        display: none;
+      }
+      .legend-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-soft);
+        font-size: 0.92rem;
+      }
+      .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+      .comparison-list {
+        display: grid;
+        gap: 12px;
+      }
+      .comparison-row {
+        display: grid;
+        gap: 8px;
+      }
+      .comparison-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .comparison-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+      }
+      .comparison-track {
+        position: relative;
+        height: 12px;
+        border-radius: var(--radius-pill);
+        background: rgba(220, 229, 239, 0.88);
+        overflow: hidden;
+      }
+      .comparison-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: var(--radius-pill);
+      }
+      .mini-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+      .mini-stat {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: var(--panel-alt);
+        border: 1px solid var(--border);
+      }
+      .mini-stat strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.05rem;
+      }
+      .plot-frame {
+        overflow: hidden;
+        border-radius: 18px;
+        background: white;
+        padding: 10px;
+        border: 1px solid var(--border);
+      }
+      .plot-frame img {
+        width: 100%;
+        display: block;
+        height: auto;
+      }
+      .notes-list {
+        display: grid;
+        gap: 12px;
+      }
+      .note-item {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+      }
+      code, pre {
+        font-family: var(--font-mono);
+      }
+      code {
+        background: rgba(226, 232, 240, 0.9);
+        padding: 0.16rem 0.38rem;
+        border-radius: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.96rem;
+      }
+      th, td {
+        padding: 0.8rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: middle;
+      }
+      th {
+        color: var(--text-soft);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      @media (max-width: 720px) {
+        .page { padding: 20px 14px 40px; }
+        .panel { padding: 18px; border-radius: 22px; }
+        .viz-grid { grid-template-columns: 1fr; }
+        .kpi-grid { grid-template-columns: 1fr; }
+        .two-column-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page"><h1>Classification parquet tuning</h1><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>KPI Matrix</span><h2>Train, validation, and holdout summary for every tracked metric</h2><p class='muted'>Start here, then jump into the metric explorer for fold-level behavior.</p></div><div class='summary-table'><table><thead><tr><th>Metric</th><th>Train</th><th>Validation</th><th>Test</th><th>Validation vs train</th><th>Test vs val</th><th>Direction</th></tr></thead><tbody><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-roc-auc' data-toggle-scroll='metric-explorer'>roc_auc</button></td><td>0.548653</td><td>0.455250</td><td>0.823529</td><td><span class='delta delta--negative'>-0.0934</span></td><td><span class='delta delta--positive'>+0.3683</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-pr-auc' data-toggle-scroll='metric-explorer'>pr_auc</button></td><td>0.853547</td><td>0.816241</td><td>0.892765</td><td><span class='delta delta--negative'>-0.0373</span></td><td><span class='delta delta--positive'>+0.0765</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-logloss' data-toggle-scroll='metric-explorer'>logloss</button></td><td>0.517330</td><td>0.519337</td><td>0.758049</td><td><span class='delta delta--negative'>-0.0020</span></td><td><span class='delta delta--negative'>-0.2387</span></td><td>lower</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-accuracy' data-toggle-scroll='metric-explorer'>accuracy</button></td><td>0.786600</td><td>0.786644</td><td>0.595238</td><td><span class='delta delta--positive'>+0.0000</span></td><td><span class='delta delta--negative'>-0.1914</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-precision' data-toggle-scroll='metric-explorer'>precision</button></td><td>0.786600</td><td>0.786644</td><td>0.595238</td><td><span class='delta delta--positive'>+0.0000</span></td><td><span class='delta delta--negative'>-0.1914</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-recall' data-toggle-scroll='metric-explorer'>recall</button></td><td>1.000000</td><td>1.000000</td><td>1.000000</td><td><span class='delta delta--positive'>+0.0000</span></td><td><span class='delta delta--positive'>+0.0000</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-f1' data-toggle-scroll='metric-explorer'>f1</button></td><td>0.880551</td><td>0.880567</td><td>0.746269</td><td><span class='delta delta--positive'>+0.0000</span></td><td><span class='delta delta--negative'>-0.1343</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-brier-score' data-toggle-scroll='metric-explorer'>brier_score</button></td><td>0.167505</td><td>0.168169</td><td>0.274134</td><td><span class='delta delta--negative'>-0.0007</span></td><td><span class='delta delta--negative'>-0.1060</span></td><td>lower</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-gini' data-toggle-scroll='metric-explorer'>gini</button></td><td>0.097306</td><td>-0.089500</td><td>0.647059</td><td><span class='delta delta--negative'>-0.1868</span></td><td><span class='delta delta--positive'>+0.7366</span></td><td>higher</td></tr></tbody></table></div></section><section class='panel hero-panel section-stack'><div class='section-head'><span class='eyebrow'>Tuning Overview</span><h2>roc_auc stays in focus</h2><p class='muted'>The report is intentionally interactive: pick a KPI, inspect folds, then compare final holdout behavior without leaving the page.</p></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Selected backend</span><strong class='metric-big'>xgboost</strong><span class='metric-subtle'>Winning framework after the search.</span></div><div class='card metric-card'><span class='eyebrow'>Optimized metric</span><strong class='metric-big'>roc_auc</strong><span class='metric-subtle'>alpha = 0.0500</span></div><div class='card metric-card'><span class='eyebrow'>Best penalized score</span><strong class='metric-big'>0.449354</strong><span class='metric-subtle'>Internal Optuna objective, always maximized.</span></div><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.548653</strong><span class='metric-subtle'>Primary KPI averaged across train folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.455250</strong><span class='metric-subtle'>Primary KPI averaged across validation folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.823529</strong><span class='metric-subtle'>Final holdout KPI after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Generalization gap</span><strong class='metric-big'>0.093403</strong><span class='metric-subtle'>Absolute gap between train and validation scores.</span></div></div><span class='badge badge--alert'>Validation gap needs attention</span></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Backend Comparison</span><h2>Frameworks ranked by penalized validation score</h2></div><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>Backend ranking</span><div id='tuning-backend-ranking' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'tuning-backend-ranking',payload:{"rows":[{"label":"xgboost","value":0.4493541009181808,"color":"#1e40af"}],"metricLabel":"penalized score"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section><section id='metric-explorer' class='panel section-stack'><div class='section-head'><span class='eyebrow'>Metric Explorer</span><h2>Select the KPI you want to inspect</h2><p class='muted'>Each KPI view compares fold-level train and validation values and keeps the holdout delta visible when available.</p></div><div class='segmented' role='group' aria-label='Tuning metric selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-roc-auc' data-toggle-default='true'>roc_auc</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-pr-auc'>pr_auc</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-logloss'>logloss</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-accuracy'>accuracy</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-precision'>precision</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-recall'>recall</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-f1'>f1</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-brier-score'>brier_score</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-gini'>gini</button></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-roc-auc' hidden><div class='metric-meta'><span class='badge'>roc_auc</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = +0.3683</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.548653</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.455250</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.823529</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0934</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>roc_auc by fold</span><div id='metric-roc-auc-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-roc-auc-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.49393326592517695,"val_value":0.35271317829457366,"color":"#c2410c"},{"label":"Fold 1","train_value":0.6137512639029323,"val_value":0.437984496124031,"color":"#c2410c"},{"label":"Fold 2","train_value":0.5382751937984496,"val_value":0.5750528541226215,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.3683</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-pr-auc' hidden><div class='metric-meta'><span class='badge'>pr_auc</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = +0.0765</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.853547</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.816241</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.892765</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0373</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>pr_auc by fold</span><div id='metric-pr-auc-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-pr-auc-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.8327651427232422,"val_value":0.7651269363737475,"color":"#c2410c"},{"label":"Fold 1","train_value":0.8808429168761429,"val_value":0.8098532729338698,"color":"#c2410c"},{"label":"Fold 2","train_value":0.8470335421338909,"val_value":0.8737440832207454,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.0765</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-logloss' hidden><div class='metric-meta'><span class='badge'>logloss</span><span class='badge'>lower is better</span><span class='badge'>Test vs validation = -0.2387</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.517330</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.519337</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.758049</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0020</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>logloss by fold</span><div id='metric-logloss-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-logloss-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.5152485056517715,"val_value":0.5253088730150102,"color":"#c2410c"},{"label":"Fold 1","train_value":0.51258647908399,"val_value":0.5270962876388862,"color":"#c2410c"},{"label":"Fold 2","train_value":0.5241565079597101,"val_value":0.5056061101630838,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Lower values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = -0.2387</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-accuracy' hidden><div class='metric-meta'><span class='badge'>accuracy</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = -0.1914</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.786600</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.786644</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.595238</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>+0.0000</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>accuracy by fold</span><div id='metric-accuracy-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-accuracy-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.7889908256880734,"val_value":0.7818181818181819,"color":"#c2410c"},{"label":"Fold 1","train_value":0.7889908256880734,"val_value":0.7818181818181819,"color":"#c2410c"},{"label":"Fold 2","train_value":0.7818181818181819,"val_value":0.7962962962962963,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = -0.1914</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-precision' hidden><div class='metric-meta'><span class='badge'>precision</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = -0.1914</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.786600</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.786644</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.595238</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>+0.0000</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>precision by fold</span><div id='metric-precision-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-precision-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.7889908256880734,"val_value":0.7818181818181819,"color":"#c2410c"},{"label":"Fold 1","train_value":0.7889908256880734,"val_value":0.7818181818181819,"color":"#c2410c"},{"label":"Fold 2","train_value":0.7818181818181819,"val_value":0.7962962962962963,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = -0.1914</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-recall' hidden><div class='metric-meta'><span class='badge'>recall</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = +0.0000</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>1.000000</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>1.000000</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>1.000000</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>+0.0000</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>recall by fold</span><div id='metric-recall-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-recall-folds',payload:{"rows":[{"label":"Fold 0","train_value":1.0,"val_value":1.0,"color":"#0f766e"},{"label":"Fold 1","train_value":1.0,"val_value":1.0,"color":"#0f766e"},{"label":"Fold 2","train_value":1.0,"val_value":1.0,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.0000</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-f1' hidden><div class='metric-meta'><span class='badge'>f1</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = -0.1343</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.880551</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.880567</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.746269</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>+0.0000</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>f1 by fold</span><div id='metric-f1-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-f1-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.882051282051282,"val_value":0.8775510204081634,"color":"#c2410c"},{"label":"Fold 1","train_value":0.882051282051282,"val_value":0.8775510204081634,"color":"#c2410c"},{"label":"Fold 2","train_value":0.8775510204081634,"val_value":0.8865979381443299,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = -0.1343</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-brier-score' hidden><div class='metric-meta'><span class='badge'>brier_score</span><span class='badge'>lower is better</span><span class='badge'>Test vs validation = -0.1060</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.167505</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.168169</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.274134</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0007</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>brier_score by fold</span><div id='metric-brier-score-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-brier-score-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.16647071847746775,"val_value":0.17081635789457458,"color":"#c2410c"},{"label":"Fold 1","train_value":0.16561093352627132,"val_value":0.17144200418373973,"color":"#c2410c"},{"label":"Fold 2","train_value":0.17043307335410496,"val_value":0.1622483855705286,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Lower values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = -0.1060</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-gini' hidden><div class='metric-meta'><span class='badge'>gini</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = +0.7366</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.097306</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>-0.089500</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.647059</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.1868</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>gini by fold</span><div id='metric-gini-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-gini-folds',payload:{"rows":[{"label":"Fold 0","train_value":-0.01213346814964611,"val_value":-0.2945736434108527,"color":"#c2410c"},{"label":"Fold 1","train_value":0.22750252780586466,"val_value":-0.12403100775193798,"color":"#c2410c"},{"label":"Fold 2","train_value":0.07655038759689914,"val_value":0.15010570824524305,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.7366</p></div></div></div></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Search Dynamics</span><h2>How the search moved across trials</h2></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>Trial History</span><div id='tuning-trial-history' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'tuning-trial-history',payload:{"xLabel":"trial","yLabel":"score","series":[{"name":"Penalized","color":"#1e40af","points":[{"x":0.0,"y":0.4493541009181808},{"x":1.0,"y":0.4493541009181808}]},{"name":"Validation","color":"#3b82f6","points":[{"x":0.0,"y":0.4552501761804087},{"x":1.0,"y":0.4552501761804087}]},{"name":"Train","color":"#f59e0b","points":[{"x":0.0,"y":0.548653241208853},{"x":1.0,"y":0.548653241208853}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Top Trials</span><div class='notes-list'><div class='note-item'><strong>Trial 0</strong><p class='muted'>penalized 0.449354 | train 0.548653 | validation 0.455250</p><p class='muted'>learning_rate=0.123324, num_boost_round=350, max_depth=4, min_child_weight=15.4158</p></div><div class='note-item'><strong>Trial 1</strong><p class='muted'>penalized 0.449354 | train 0.548653 | validation 0.455250</p><p class='muted'>learning_rate=0.0658139, num_boost_round=150, max_depth=4, min_child_weight=0.170138</p></div></div></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Winning Configuration</span><h2>Best trial configuration</h2></div><div class='chip-cloud'><span class='chip'><strong>learning_rate</strong><span>0.123324</span></span><span class='chip'><strong>num_boost_round</strong><span>350</span></span><span class='chip'><strong>max_depth</strong><span>4</span></span><span class='chip'><strong>min_child_weight</strong><span>15.4158</span></span><span class='chip'><strong>subsample</strong><span>0.986301</span></span><span class='chip'><strong>colsample_bytree</strong><span>0.67207</span></span><span class='chip'><strong>colsample_bylevel</strong><span>0.765425</span></span><span class='chip'><strong>gamma</strong><span>0.0954418</span></span><span class='chip'><strong>lambda</strong><span>1.61461</span></span><span class='chip'><strong>alpha</strong><span>4.07466</span></span><span class='chip'><strong>max_delta_step</strong><span>0.350365</span></span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Best validation fold</span><strong class='metric-big'>Fold 2</strong><span class='metric-subtle'>validation score = 0.575053</span></div><div class='card metric-card'><span class='eyebrow'>Most fragile fold</span><strong class='metric-big'>Fold 0</strong><span class='metric-subtle'>validation score = 0.352713</span></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Final Test Curves</span><h2>Holdout behavior</h2></div><div class='segmented' role='group' aria-label='Holdout curve selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-holdout-curves' data-toggle-target='holdout-metric-roc' data-toggle-default='true'>Roc</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-holdout-curves' data-toggle-target='holdout-metric-pr'>Pr</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-holdout-curves' data-toggle-target='holdout-metric-calibration'>Calibration</button></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-holdout-curves' data-toggle-panel='holdout-metric-roc' hidden><div class='card card--wide'><span class='eyebrow'>Roc</span><div id='holdout-metric-roc-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'holdout-metric-roc-chart',payload:{"xLabel":"False positive rate","yLabel":"True positive rate","series":[{"name":"final_test","color":"#1e40af","dash":null,"points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.04},{"x":0.0,"y":0.08},{"x":0.0,"y":0.12},{"x":0.0,"y":0.16},{"x":0.0,"y":0.2},{"x":0.0,"y":0.24},{"x":0.0,"y":0.28},{"x":0.0,"y":0.32},{"x":0.0,"y":0.36},{"x":0.0,"y":0.4},{"x":0.0,"y":0.44},{"x":0.0,"y":0.48},{"x":0.0,"y":0.52},{"x":0.058823529411764705,"y":0.52},{"x":0.058823529411764705,"y":0.56},{"x":0.058823529411764705,"y":0.6},{"x":0.11764705882352941,"y":0.6},{"x":0.17647058823529413,"y":0.6},{"x":0.17647058823529413,"y":0.64},{"x":0.23529411764705882,"y":0.64},{"x":0.23529411764705882,"y":0.68},{"x":0.23529411764705882,"y":0.72},{"x":0.29411764705882354,"y":0.72},{"x":0.35294117647058826,"y":0.72},{"x":0.35294117647058826,"y":0.76},{"x":0.35294117647058826,"y":0.8},{"x":0.4117647058823529,"y":0.8},{"x":0.4117647058823529,"y":0.84},{"x":0.47058823529411764,"y":0.84},{"x":0.5294117647058824,"y":0.84},{"x":0.5294117647058824,"y":0.88},{"x":0.5882352941176471,"y":0.88},{"x":0.5882352941176471,"y":0.92},{"x":0.6470588235294118,"y":0.92},{"x":0.6470588235294118,"y":0.96},{"x":0.7058823529411765,"y":0.96},{"x":0.7647058823529411,"y":0.96},{"x":0.7647058823529411,"y":1.0},{"x":0.8235294117647058,"y":1.0},{"x":0.8823529411764706,"y":1.0},{"x":0.9411764705882353,"y":1.0},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]}],"diagonal":[[0.0,0.0],[1.0,1.0]]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-holdout-curves' data-toggle-panel='holdout-metric-pr' hidden><div class='card card--wide'><span class='eyebrow'>Pr</span><div id='holdout-metric-pr-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'holdout-metric-pr-chart',payload:{"xLabel":"Recall","yLabel":"Precision","series":[{"name":"final_test","color":"#1e40af","dash":null,"points":[{"x":0.0,"y":1.0},{"x":0.04,"y":1.0},{"x":0.08,"y":1.0},{"x":0.12,"y":1.0},{"x":0.16,"y":1.0},{"x":0.2,"y":1.0},{"x":0.24,"y":1.0},{"x":0.28,"y":1.0},{"x":0.32,"y":1.0},{"x":0.36,"y":1.0},{"x":0.4,"y":1.0},{"x":0.44,"y":1.0},{"x":0.48,"y":1.0},{"x":0.52,"y":1.0},{"x":0.52,"y":0.9285714285714286},{"x":0.56,"y":0.9333333333333333},{"x":0.6,"y":0.9375},{"x":0.6,"y":0.8823529411764706},{"x":0.6,"y":0.8333333333333334},{"x":0.64,"y":0.8421052631578947},{"x":0.64,"y":0.8},{"x":0.68,"y":0.8095238095238095},{"x":0.72,"y":0.8181818181818182},{"x":0.72,"y":0.782608695652174},{"x":0.72,"y":0.75},{"x":0.76,"y":0.76},{"x":0.8,"y":0.7692307692307693},{"x":0.8,"y":0.7407407407407407},{"x":0.84,"y":0.75},{"x":0.84,"y":0.7241379310344828},{"x":0.84,"y":0.7},{"x":0.88,"y":0.7096774193548387},{"x":0.88,"y":0.6875},{"x":0.92,"y":0.696969696969697},{"x":0.92,"y":0.6764705882352942},{"x":0.96,"y":0.6857142857142857},{"x":0.96,"y":0.6666666666666666},{"x":0.96,"y":0.6486486486486487},{"x":1.0,"y":0.6578947368421053},{"x":1.0,"y":0.6410256410256411},{"x":1.0,"y":0.625},{"x":1.0,"y":0.6097560975609756},{"x":1.0,"y":0.5952380952380952}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-holdout-curves' data-toggle-panel='holdout-metric-calibration' hidden><div class='card card--wide'><span class='eyebrow'>Calibration</span><div id='holdout-metric-calibration-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'holdout-metric-calibration-chart',payload:{"xLabel":"Predicted probability","yLabel":"Observed probability","series":[{"name":"final_test","color":"#1e40af","dash":null,"points":[{"x":0.7774778537913727,"y":0.2},{"x":0.7775224176241575,"y":0.25},{"x":0.7775969232386837,"y":0.5},{"x":0.7776983604894029,"y":0.5},{"x":0.7777803733798552,"y":0.5},{"x":0.7778611467228529,"y":0.5},{"x":0.7779365237241209,"y":0.5},{"x":0.7779913719779192,"y":1.0},{"x":0.7780266822158546,"y":1.0},{"x":0.7783092374370172,"y":1.0}]}],"diagonal":[[0.0,0.0],[1.0,1.0]]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Fold Curves</span><h2>Train and validation curves by fold</h2></div><div class='segmented' role='group' aria-label='Fold curve selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-fold-curves' data-toggle-target='fold-metric-roc' data-toggle-default='true'>Roc by fold</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-fold-curves' data-toggle-target='fold-metric-pr'>Pr by fold</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-fold-curves' data-toggle-target='fold-metric-calibration'>Calibration by fold</button></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-fold-curves' data-toggle-panel='fold-metric-roc' hidden><div class='card card--wide'><span class='eyebrow'>Roc by fold</span><div id='fold-metric-roc-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'fold-metric-roc-chart',payload:{"xLabel":"False positive rate","yLabel":"True positive rate","series":[{"name":"Fold 0 Train","color":"#1e40af","dash":null,"points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.011627906976744186},{"x":0.0,"y":0.023255813953488372},{"x":0.0,"y":0.03488372093023256},{"x":0.0,"y":0.046511627906976744},{"x":0.0,"y":0.05813953488372093},{"x":0.0,"y":0.06976744186046512},{"x":0.0,"y":0.08139534883720931},{"x":0.0,"y":0.09302325581395349},{"x":0.0,"y":0.10465116279069768},{"x":0.0,"y":0.11627906976744186},{"x":0.0,"y":0.12790697674418605},{"x":0.0,"y":0.13953488372093023},{"x":0.0,"y":0.1511627906976744},{"x":0.0,"y":0.16279069767441862},{"x":0.0,"y":0.1744186046511628},{"x":0.0,"y":0.18604651162790697},{"x":0.0,"y":0.19767441860465115},{"x":0.0,"y":0.20930232558139536},{"x":0.043478260869565216,"y":0.20930232558139536},{"x":0.043478260869565216,"y":0.22093023255813954},{"x":0.08695652173913043,"y":0.22093023255813954},{"x":0.08695652173913043,"y":0.23255813953488372},{"x":0.13043478260869565,"y":0.23255813953488372},{"x":0.13043478260869565,"y":0.2441860465116279},{"x":0.13043478260869565,"y":0.2558139534883721},{"x":0.17391304347826086,"y":0.2558139534883721},{"x":0.17391304347826086,"y":0.26744186046511625},{"x":0.21739130434782608,"y":0.26744186046511625},{"x":0.21739130434782608,"y":0.27906976744186046},{"x":0.2608695652173913,"y":0.27906976744186046},{"x":0.2608695652173913,"y":0.29069767441860467},{"x":0.30434782608695654,"y":0.29069767441860467},{"x":0.30434782608695654,"y":0.3023255813953488},{"x":0.34782608695652173,"y":0.3023255813953488},{"x":0.34782608695652173,"y":0.313953488372093},{"x":0.391304347826087,"y":0.313953488372093},{"x":0.391304347826087,"y":0.32558139534883723},{"x":0.391304347826087,"y":0.3372093023255814},{"x":0.43478260869565216,"y":0.3372093023255814},{"x":0.43478260869565216,"y":0.3488372093023256},{"x":0.43478260869565216,"y":0.36046511627906974},{"x":0.43478260869565216,"y":0.37209302325581395},{"x":0.43478260869565216,"y":0.38372093023255816},{"x":0.43478260869565216,"y":0.3953488372093023},{"x":0.43478260869565216,"y":0.4069767441860465},{"x":0.43478260869565216,"y":0.4186046511627907},{"x":0.43478260869565216,"y":0.43023255813953487},{"x":0.43478260869565216,"y":0.4418604651162791},{"x":0.43478260869565216,"y":0.45348837209302323},{"x":0.43478260869565216,"y":0.46511627906976744},{"x":0.43478260869565216,"y":0.47674418604651164},{"x":0.43478260869565216,"y":0.4883720930232558},{"x":0.43478260869565216,"y":0.5},{"x":0.43478260869565216,"y":0.5116279069767442},{"x":0.43478260869565216,"y":0.5232558139534884},{"x":0.43478260869565216,"y":0.5348837209302325},{"x":0.43478260869565216,"y":0.5465116279069767},{"x":0.43478260869565216,"y":0.5581395348837209},{"x":0.43478260869565216,"y":0.5697674418604651},{"x":0.43478260869565216,"y":0.5813953488372093},{"x":0.43478260869565216,"y":0.5930232558139535},{"x":0.43478260869565216,"y":0.6046511627906976},{"x":0.43478260869565216,"y":0.6162790697674418},{"x":0.43478260869565216,"y":0.627906976744186},{"x":0.4782608695652174,"y":0.627906976744186},{"x":0.5217391304347826,"y":0.627906976744186},{"x":0.5652173913043478,"y":0.627906976744186},{"x":0.5652173913043478,"y":0.6395348837209303},{"x":0.6086956521739131,"y":0.6395348837209303},{"x":0.6086956521739131,"y":0.6511627906976745},{"x":0.6521739130434783,"y":0.6511627906976745},{"x":0.6521739130434783,"y":0.6627906976744186},{"x":0.6956521739130435,"y":0.6627906976744186},{"x":0.6956521739130435,"y":0.6744186046511628},{"x":0.7391304347826086,"y":0.6744186046511628},{"x":0.782608695652174,"y":0.6744186046511628},{"x":0.782608695652174,"y":0.686046511627907},{"x":0.8260869565217391,"y":0.686046511627907},{"x":0.8695652173913043,"y":0.686046511627907},{"x":0.9130434782608695,"y":0.686046511627907},{"x":0.9130434782608695,"y":0.6976744186046512},{"x":0.9565217391304348,"y":0.6976744186046512},{"x":0.9565217391304348,"y":0.7093023255813954},{"x":1.0,"y":0.7093023255813954},{"x":1.0,"y":0.7209302325581395},{"x":1.0,"y":0.7325581395348837},{"x":1.0,"y":0.7441860465116279},{"x":1.0,"y":0.7558139534883721},{"x":1.0,"y":0.7674418604651163},{"x":1.0,"y":0.7790697674418605},{"x":1.0,"y":0.7906976744186046},{"x":1.0,"y":0.8023255813953488},{"x":1.0,"y":0.813953488372093},{"x":1.0,"y":0.8255813953488372},{"x":1.0,"y":0.8372093023255814},{"x":1.0,"y":0.8488372093023255},{"x":1.0,"y":0.8604651162790697},{"x":1.0,"y":0.872093023255814},{"x":1.0,"y":0.8837209302325582},{"x":1.0,"y":0.8953488372093024},{"x":1.0,"y":0.9069767441860465},{"x":1.0,"y":0.9186046511627907},{"x":1.0,"y":0.9302325581395349},{"x":1.0,"y":0.9418604651162791},{"x":1.0,"y":0.9534883720930233},{"x":1.0,"y":0.9651162790697675},{"x":1.0,"y":0.9767441860465116},{"x":1.0,"y":0.9883720930232558},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]},{"name":"Fold 0 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.023255813953488372},{"x":0.0,"y":0.046511627906976744},{"x":0.0,"y":0.06976744186046512},{"x":0.0,"y":0.09302325581395349},{"x":0.0,"y":0.11627906976744186},{"x":0.0,"y":0.13953488372093023},{"x":0.0,"y":0.16279069767441862},{"x":0.08333333333333333,"y":0.16279069767441862},{"x":0.16666666666666666,"y":0.16279069767441862},{"x":0.16666666666666666,"y":0.18604651162790697},{"x":0.25,"y":0.18604651162790697},{"x":0.25,"y":0.20930232558139536},{"x":0.3333333333333333,"y":0.20930232558139536},{"x":0.3333333333333333,"y":0.23255813953488372},{"x":0.4166666666666667,"y":0.23255813953488372},{"x":0.5,"y":0.23255813953488372},{"x":0.5,"y":0.2558139534883721},{"x":0.5,"y":0.27906976744186046},{"x":0.5833333333333334,"y":0.27906976744186046},{"x":0.5833333333333334,"y":0.3023255813953488},{"x":0.6666666666666666,"y":0.3023255813953488},{"x":0.6666666666666666,"y":0.32558139534883723},{"x":0.6666666666666666,"y":0.3488372093023256},{"x":0.6666666666666666,"y":0.37209302325581395},{"x":0.6666666666666666,"y":0.3953488372093023},{"x":0.6666666666666666,"y":0.4186046511627907},{"x":0.6666666666666666,"y":0.4418604651162791},{"x":0.6666666666666666,"y":0.46511627906976744},{"x":0.6666666666666666,"y":0.4883720930232558},{"x":0.6666666666666666,"y":0.5116279069767442},{"x":0.6666666666666666,"y":0.5348837209302325},{"x":0.6666666666666666,"y":0.5581395348837209},{"x":0.6666666666666666,"y":0.5813953488372093},{"x":0.75,"y":0.5813953488372093},{"x":0.8333333333333334,"y":0.5813953488372093},{"x":0.8333333333333334,"y":0.6046511627906976},{"x":0.9166666666666666,"y":0.6046511627906976},{"x":0.9166666666666666,"y":0.627906976744186},{"x":0.9166666666666666,"y":0.6511627906976745},{"x":0.9166666666666666,"y":0.6744186046511628},{"x":0.9166666666666666,"y":0.6976744186046512},{"x":1.0,"y":0.6976744186046512},{"x":1.0,"y":0.7209302325581395},{"x":1.0,"y":0.7441860465116279},{"x":1.0,"y":0.7674418604651163},{"x":1.0,"y":0.7906976744186046},{"x":1.0,"y":0.813953488372093},{"x":1.0,"y":0.8372093023255814},{"x":1.0,"y":0.8604651162790697},{"x":1.0,"y":0.8837209302325582},{"x":1.0,"y":0.9069767441860465},{"x":1.0,"y":0.9302325581395349},{"x":1.0,"y":0.9534883720930233},{"x":1.0,"y":0.9767441860465116},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]},{"name":"Fold 1 Train","color":"#3b82f6","dash":null,"points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.011627906976744186},{"x":0.0,"y":0.023255813953488372},{"x":0.0,"y":0.03488372093023256},{"x":0.0,"y":0.046511627906976744},{"x":0.0,"y":0.05813953488372093},{"x":0.0,"y":0.06976744186046512},{"x":0.0,"y":0.08139534883720931},{"x":0.0,"y":0.09302325581395349},{"x":0.0,"y":0.10465116279069768},{"x":0.0,"y":0.11627906976744186},{"x":0.0,"y":0.12790697674418605},{"x":0.0,"y":0.13953488372093023},{"x":0.0,"y":0.1511627906976744},{"x":0.0,"y":0.16279069767441862},{"x":0.0,"y":0.1744186046511628},{"x":0.0,"y":0.18604651162790697},{"x":0.0,"y":0.19767441860465115},{"x":0.0,"y":0.20930232558139536},{"x":0.0,"y":0.22093023255813954},{"x":0.0,"y":0.23255813953488372},{"x":0.0,"y":0.2441860465116279},{"x":0.0,"y":0.2558139534883721},{"x":0.0,"y":0.26744186046511625},{"x":0.0,"y":0.27906976744186046},{"x":0.0,"y":0.29069767441860467},{"x":0.0,"y":0.3023255813953488},{"x":0.0,"y":0.313953488372093},{"x":0.0,"y":0.32558139534883723},{"x":0.043478260869565216,"y":0.32558139534883723},{"x":0.08695652173913043,"y":0.32558139534883723},{"x":0.08695652173913043,"y":0.3372093023255814},{"x":0.13043478260869565,"y":0.3372093023255814},{"x":0.13043478260869565,"y":0.3488372093023256},{"x":0.13043478260869565,"y":0.36046511627906974},{"x":0.13043478260869565,"y":0.37209302325581395},{"x":0.17391304347826086,"y":0.37209302325581395},{"x":0.17391304347826086,"y":0.38372093023255816},{"x":0.17391304347826086,"y":0.3953488372093023},{"x":0.21739130434782608,"y":0.3953488372093023},{"x":0.2608695652173913,"y":0.3953488372093023},{"x":0.30434782608695654,"y":0.3953488372093023},{"x":0.34782608695652173,"y":0.3953488372093023},{"x":0.391304347826087,"y":0.3953488372093023},{"x":0.391304347826087,"y":0.4069767441860465},{"x":0.391304347826087,"y":0.4186046511627907},{"x":0.391304347826087,"y":0.43023255813953487},{"x":0.391304347826087,"y":0.4418604651162791},{"x":0.391304347826087,"y":0.45348837209302323},{"x":0.391304347826087,"y":0.46511627906976744},{"x":0.391304347826087,"y":0.47674418604651164},{"x":0.391304347826087,"y":0.4883720930232558},{"x":0.391304347826087,"y":0.5},{"x":0.391304347826087,"y":0.5116279069767442},{"x":0.391304347826087,"y":0.5232558139534884},{"x":0.391304347826087,"y":0.5348837209302325},{"x":0.391304347826087,"y":0.5465116279069767},{"x":0.391304347826087,"y":0.5581395348837209},{"x":0.391304347826087,"y":0.5697674418604651},{"x":0.391304347826087,"y":0.5813953488372093},{"x":0.391304347826087,"y":0.5930232558139535},{"x":0.391304347826087,"y":0.6046511627906976},{"x":0.391304347826087,"y":0.6162790697674418},{"x":0.391304347826087,"y":0.627906976744186},{"x":0.391304347826087,"y":0.6395348837209303},{"x":0.391304347826087,"y":0.6511627906976745},{"x":0.391304347826087,"y":0.6627906976744186},{"x":0.391304347826087,"y":0.6744186046511628},{"x":0.391304347826087,"y":0.686046511627907},{"x":0.391304347826087,"y":0.6976744186046512},{"x":0.43478260869565216,"y":0.6976744186046512},{"x":0.43478260869565216,"y":0.7093023255813954},{"x":0.4782608695652174,"y":0.7093023255813954},{"x":0.4782608695652174,"y":0.7209302325581395},{"x":0.5217391304347826,"y":0.7209302325581395},{"x":0.5217391304347826,"y":0.7325581395348837},{"x":0.5217391304347826,"y":0.7441860465116279},{"x":0.5652173913043478,"y":0.7441860465116279},{"x":0.6086956521739131,"y":0.7441860465116279},{"x":0.6086956521739131,"y":0.7558139534883721},{"x":0.6521739130434783,"y":0.7558139534883721},{"x":0.6521739130434783,"y":0.7674418604651163},{"x":0.6956521739130435,"y":0.7674418604651163},{"x":0.6956521739130435,"y":0.7790697674418605},{"x":0.7391304347826086,"y":0.7790697674418605},{"x":0.7391304347826086,"y":0.7906976744186046},{"x":0.782608695652174,"y":0.7906976744186046},{"x":0.8260869565217391,"y":0.7906976744186046},{"x":0.8260869565217391,"y":0.8023255813953488},{"x":0.8695652173913043,"y":0.8023255813953488},{"x":0.8695652173913043,"y":0.813953488372093},{"x":0.8695652173913043,"y":0.8255813953488372},{"x":0.9130434782608695,"y":0.8255813953488372},{"x":0.9565217391304348,"y":0.8255813953488372},{"x":1.0,"y":0.8255813953488372},{"x":1.0,"y":0.8372093023255814},{"x":1.0,"y":0.8488372093023255},{"x":1.0,"y":0.8604651162790697},{"x":1.0,"y":0.872093023255814},{"x":1.0,"y":0.8837209302325582},{"x":1.0,"y":0.8953488372093024},{"x":1.0,"y":0.9069767441860465},{"x":1.0,"y":0.9186046511627907},{"x":1.0,"y":0.9302325581395349},{"x":1.0,"y":0.9418604651162791},{"x":1.0,"y":0.9534883720930233},{"x":1.0,"y":0.9651162790697675},{"x":1.0,"y":0.9767441860465116},{"x":1.0,"y":0.9883720930232558},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]},{"name":"Fold 1 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.023255813953488372},{"x":0.0,"y":0.046511627906976744},{"x":0.0,"y":0.06976744186046512},{"x":0.0,"y":0.09302325581395349},{"x":0.0,"y":0.11627906976744186},{"x":0.0,"y":0.13953488372093023},{"x":0.0,"y":0.16279069767441862},{"x":0.0,"y":0.18604651162790697},{"x":0.0,"y":0.20930232558139536},{"x":0.0,"y":0.23255813953488372},{"x":0.08333333333333333,"y":0.23255813953488372},{"x":0.08333333333333333,"y":0.2558139534883721},{"x":0.16666666666666666,"y":0.2558139534883721},{"x":0.16666666666666666,"y":0.27906976744186046},{"x":0.25,"y":0.27906976744186046},{"x":0.25,"y":0.3023255813953488},{"x":0.3333333333333333,"y":0.3023255813953488},{"x":0.4166666666666667,"y":0.3023255813953488},{"x":0.4166666666666667,"y":0.32558139534883723},{"x":0.5,"y":0.32558139534883723},{"x":0.5,"y":0.3488372093023256},{"x":0.5,"y":0.37209302325581395},{"x":0.5833333333333334,"y":0.37209302325581395},{"x":0.6666666666666666,"y":0.37209302325581395},{"x":0.6666666666666666,"y":0.3953488372093023},{"x":0.6666666666666666,"y":0.4186046511627907},{"x":0.6666666666666666,"y":0.4418604651162791},{"x":0.6666666666666666,"y":0.46511627906976744},{"x":0.6666666666666666,"y":0.4883720930232558},{"x":0.6666666666666666,"y":0.5116279069767442},{"x":0.6666666666666666,"y":0.5348837209302325},{"x":0.6666666666666666,"y":0.5581395348837209},{"x":0.6666666666666666,"y":0.5813953488372093},{"x":0.6666666666666666,"y":0.6046511627906976},{"x":0.6666666666666666,"y":0.627906976744186},{"x":0.6666666666666666,"y":0.6511627906976745},{"x":0.75,"y":0.6511627906976745},{"x":0.75,"y":0.6744186046511628},{"x":0.8333333333333334,"y":0.6744186046511628},{"x":0.8333333333333334,"y":0.6976744186046512},{"x":0.8333333333333334,"y":0.7209302325581395},{"x":0.9166666666666666,"y":0.7209302325581395},{"x":0.9166666666666666,"y":0.7441860465116279},{"x":0.9166666666666666,"y":0.7674418604651163},{"x":1.0,"y":0.7674418604651163},{"x":1.0,"y":0.7906976744186046},{"x":1.0,"y":0.813953488372093},{"x":1.0,"y":0.8372093023255814},{"x":1.0,"y":0.8604651162790697},{"x":1.0,"y":0.8837209302325582},{"x":1.0,"y":0.9069767441860465},{"x":1.0,"y":0.9302325581395349},{"x":1.0,"y":0.9534883720930233},{"x":1.0,"y":0.9767441860465116},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]},{"name":"Fold 2 Train","color":"#f59e0b","dash":null,"points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.011627906976744186},{"x":0.0,"y":0.023255813953488372},{"x":0.0,"y":0.03488372093023256},{"x":0.0,"y":0.046511627906976744},{"x":0.0,"y":0.05813953488372093},{"x":0.0,"y":0.06976744186046512},{"x":0.0,"y":0.08139534883720931},{"x":0.0,"y":0.09302325581395349},{"x":0.0,"y":0.10465116279069768},{"x":0.0,"y":0.11627906976744186},{"x":0.0,"y":0.12790697674418605},{"x":0.0,"y":0.13953488372093023},{"x":0.0,"y":0.1511627906976744},{"x":0.0,"y":0.16279069767441862},{"x":0.0,"y":0.1744186046511628},{"x":0.0,"y":0.18604651162790697},{"x":0.0,"y":0.19767441860465115},{"x":0.0,"y":0.20930232558139536},{"x":0.0,"y":0.22093023255813954},{"x":0.0,"y":0.23255813953488372},{"x":0.0,"y":0.2441860465116279},{"x":0.0,"y":0.2558139534883721},{"x":0.041666666666666664,"y":0.2558139534883721},{"x":0.041666666666666664,"y":0.26744186046511625},{"x":0.08333333333333333,"y":0.26744186046511625},{"x":0.08333333333333333,"y":0.27906976744186046},{"x":0.125,"y":0.27906976744186046},{"x":0.125,"y":0.29069767441860467},{"x":0.125,"y":0.3023255813953488},{"x":0.125,"y":0.313953488372093},{"x":0.16666666666666666,"y":0.313953488372093},{"x":0.16666666666666666,"y":0.32558139534883723},{"x":0.20833333333333334,"y":0.32558139534883723},{"x":0.20833333333333334,"y":0.3372093023255814},{"x":0.25,"y":0.3372093023255814},{"x":0.25,"y":0.3488372093023256},{"x":0.25,"y":0.36046511627906974},{"x":0.2916666666666667,"y":0.36046511627906974},{"x":0.3333333333333333,"y":0.36046511627906974},{"x":0.3333333333333333,"y":0.37209302325581395},{"x":0.3333333333333333,"y":0.38372093023255816},{"x":0.375,"y":0.38372093023255816},{"x":0.375,"y":0.3953488372093023},{"x":0.4166666666666667,"y":0.3953488372093023},{"x":0.4583333333333333,"y":0.3953488372093023},{"x":0.5,"y":0.3953488372093023},{"x":0.5,"y":0.4069767441860465},{"x":0.5,"y":0.4186046511627907},{"x":0.5,"y":0.43023255813953487},{"x":0.5,"y":0.4418604651162791},{"x":0.5,"y":0.45348837209302323},{"x":0.5,"y":0.46511627906976744},{"x":0.5,"y":0.47674418604651164},{"x":0.5,"y":0.4883720930232558},{"x":0.5,"y":0.5},{"x":0.5,"y":0.5116279069767442},{"x":0.5,"y":0.5232558139534884},{"x":0.5,"y":0.5348837209302325},{"x":0.5,"y":0.5465116279069767},{"x":0.5,"y":0.5581395348837209},{"x":0.5,"y":0.5697674418604651},{"x":0.5,"y":0.5813953488372093},{"x":0.5,"y":0.5930232558139535},{"x":0.5,"y":0.6046511627906976},{"x":0.5,"y":0.6162790697674418},{"x":0.5,"y":0.627906976744186},{"x":0.5,"y":0.6395348837209303},{"x":0.5,"y":0.6511627906976745},{"x":0.5,"y":0.6627906976744186},{"x":0.5416666666666666,"y":0.6627906976744186},{"x":0.5416666666666666,"y":0.6744186046511628},{"x":0.5833333333333334,"y":0.6744186046511628},{"x":0.5833333333333334,"y":0.686046511627907},{"x":0.5833333333333334,"y":0.6976744186046512},{"x":0.625,"y":0.6976744186046512},{"x":0.6666666666666666,"y":0.6976744186046512},{"x":0.6666666666666666,"y":0.7093023255813954},{"x":0.6666666666666666,"y":0.7209302325581395},{"x":0.7083333333333334,"y":0.7209302325581395},{"x":0.75,"y":0.7209302325581395},{"x":0.75,"y":0.7325581395348837},{"x":0.75,"y":0.7441860465116279},{"x":0.7916666666666666,"y":0.7441860465116279},{"x":0.7916666666666666,"y":0.7558139534883721},{"x":0.8333333333333334,"y":0.7558139534883721},{"x":0.8333333333333334,"y":0.7674418604651163},{"x":0.8333333333333334,"y":0.7790697674418605},{"x":0.875,"y":0.7790697674418605},{"x":0.875,"y":0.7906976744186046},{"x":0.9166666666666666,"y":0.7906976744186046},{"x":0.9166666666666666,"y":0.8023255813953488},{"x":0.9583333333333334,"y":0.8023255813953488},{"x":1.0,"y":0.8023255813953488},{"x":1.0,"y":0.813953488372093},{"x":1.0,"y":0.8255813953488372},{"x":1.0,"y":0.8372093023255814},{"x":1.0,"y":0.8488372093023255},{"x":1.0,"y":0.8604651162790697},{"x":1.0,"y":0.872093023255814},{"x":1.0,"y":0.8837209302325582},{"x":1.0,"y":0.8953488372093024},{"x":1.0,"y":0.9069767441860465},{"x":1.0,"y":0.9186046511627907},{"x":1.0,"y":0.9302325581395349},{"x":1.0,"y":0.9418604651162791},{"x":1.0,"y":0.9534883720930233},{"x":1.0,"y":0.9651162790697675},{"x":1.0,"y":0.9767441860465116},{"x":1.0,"y":0.9883720930232558},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]},{"name":"Fold 2 Validation","color":"#f59e0b","dash":"6 6","points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.023255813953488372},{"x":0.0,"y":0.046511627906976744},{"x":0.0,"y":0.06976744186046512},{"x":0.0,"y":0.09302325581395349},{"x":0.0,"y":0.11627906976744186},{"x":0.0,"y":0.13953488372093023},{"x":0.0,"y":0.16279069767441862},{"x":0.0,"y":0.18604651162790697},{"x":0.0,"y":0.20930232558139536},{"x":0.0,"y":0.23255813953488372},{"x":0.0,"y":0.2558139534883721},{"x":0.0,"y":0.27906976744186046},{"x":0.0,"y":0.3023255813953488},{"x":0.0,"y":0.32558139534883723},{"x":0.0,"y":0.3488372093023256},{"x":0.09090909090909091,"y":0.3488372093023256},{"x":0.18181818181818182,"y":0.3488372093023256},{"x":0.18181818181818182,"y":0.37209302325581395},{"x":0.2727272727272727,"y":0.37209302325581395},{"x":0.36363636363636365,"y":0.37209302325581395},{"x":0.45454545454545453,"y":0.37209302325581395},{"x":0.45454545454545453,"y":0.3953488372093023},{"x":0.45454545454545453,"y":0.4186046511627907},{"x":0.45454545454545453,"y":0.4418604651162791},{"x":0.45454545454545453,"y":0.46511627906976744},{"x":0.45454545454545453,"y":0.4883720930232558},{"x":0.45454545454545453,"y":0.5116279069767442},{"x":0.45454545454545453,"y":0.5348837209302325},{"x":0.45454545454545453,"y":0.5581395348837209},{"x":0.45454545454545453,"y":0.5813953488372093},{"x":0.45454545454545453,"y":0.6046511627906976},{"x":0.45454545454545453,"y":0.627906976744186},{"x":0.45454545454545453,"y":0.6511627906976745},{"x":0.45454545454545453,"y":0.6744186046511628},{"x":0.45454545454545453,"y":0.6976744186046512},{"x":0.5454545454545454,"y":0.6976744186046512},{"x":0.5454545454545454,"y":0.7209302325581395},{"x":0.5454545454545454,"y":0.7441860465116279},{"x":0.6363636363636364,"y":0.7441860465116279},{"x":0.7272727272727273,"y":0.7441860465116279},{"x":0.8181818181818182,"y":0.7441860465116279},{"x":0.8181818181818182,"y":0.7674418604651163},{"x":0.9090909090909091,"y":0.7674418604651163},{"x":0.9090909090909091,"y":0.7906976744186046},{"x":0.9090909090909091,"y":0.813953488372093},{"x":1.0,"y":0.813953488372093},{"x":1.0,"y":0.8372093023255814},{"x":1.0,"y":0.8604651162790697},{"x":1.0,"y":0.8837209302325582},{"x":1.0,"y":0.9069767441860465},{"x":1.0,"y":0.9302325581395349},{"x":1.0,"y":0.9534883720930233},{"x":1.0,"y":0.9767441860465116},{"x":1.0,"y":1.0},{"x":1.0,"y":1.0}]}],"diagonal":[[0.0,0.0],[1.0,1.0]]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-fold-curves' data-toggle-panel='fold-metric-pr' hidden><div class='card card--wide'><span class='eyebrow'>Pr by fold</span><div id='fold-metric-pr-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'fold-metric-pr-chart',payload:{"xLabel":"Recall","yLabel":"Precision","series":[{"name":"Fold 0 Train","color":"#1e40af","dash":null,"points":[{"x":0.0,"y":1.0},{"x":0.011627906976744186,"y":1.0},{"x":0.023255813953488372,"y":1.0},{"x":0.03488372093023256,"y":1.0},{"x":0.046511627906976744,"y":1.0},{"x":0.05813953488372093,"y":1.0},{"x":0.06976744186046512,"y":1.0},{"x":0.08139534883720931,"y":1.0},{"x":0.09302325581395349,"y":1.0},{"x":0.10465116279069768,"y":1.0},{"x":0.11627906976744186,"y":1.0},{"x":0.12790697674418605,"y":1.0},{"x":0.13953488372093023,"y":1.0},{"x":0.1511627906976744,"y":1.0},{"x":0.16279069767441862,"y":1.0},{"x":0.1744186046511628,"y":1.0},{"x":0.18604651162790697,"y":1.0},{"x":0.19767441860465115,"y":1.0},{"x":0.20930232558139536,"y":1.0},{"x":0.20930232558139536,"y":0.9473684210526315},{"x":0.22093023255813954,"y":0.95},{"x":0.22093023255813954,"y":0.9047619047619048},{"x":0.23255813953488372,"y":0.9090909090909091},{"x":0.23255813953488372,"y":0.8695652173913043},{"x":0.2441860465116279,"y":0.875},{"x":0.2558139534883721,"y":0.88},{"x":0.2558139534883721,"y":0.8461538461538461},{"x":0.26744186046511625,"y":0.8518518518518519},{"x":0.26744186046511625,"y":0.8214285714285714},{"x":0.27906976744186046,"y":0.8275862068965517},{"x":0.27906976744186046,"y":0.8},{"x":0.29069767441860467,"y":0.8064516129032258},{"x":0.29069767441860467,"y":0.78125},{"x":0.3023255813953488,"y":0.7878787878787878},{"x":0.3023255813953488,"y":0.7647058823529411},{"x":0.313953488372093,"y":0.7714285714285715},{"x":0.313953488372093,"y":0.75},{"x":0.32558139534883723,"y":0.7567567567567568},{"x":0.3372093023255814,"y":0.7631578947368421},{"x":0.3372093023255814,"y":0.7435897435897436},{"x":0.3488372093023256,"y":0.75},{"x":0.36046511627906974,"y":0.7560975609756098},{"x":0.37209302325581395,"y":0.7619047619047619},{"x":0.38372093023255816,"y":0.7674418604651163},{"x":0.3953488372093023,"y":0.7727272727272727},{"x":0.4069767441860465,"y":0.7777777777777778},{"x":0.4186046511627907,"y":0.782608695652174},{"x":0.43023255813953487,"y":0.7872340425531915},{"x":0.4418604651162791,"y":0.7916666666666666},{"x":0.45348837209302323,"y":0.7959183673469388},{"x":0.46511627906976744,"y":0.8},{"x":0.47674418604651164,"y":0.803921568627451},{"x":0.4883720930232558,"y":0.8076923076923077},{"x":0.5,"y":0.8113207547169812},{"x":0.5116279069767442,"y":0.8148148148148148},{"x":0.5232558139534884,"y":0.8181818181818182},{"x":0.5348837209302325,"y":0.8214285714285714},{"x":0.5465116279069767,"y":0.8245614035087719},{"x":0.5581395348837209,"y":0.8275862068965517},{"x":0.5697674418604651,"y":0.8305084745762712},{"x":0.5813953488372093,"y":0.8333333333333334},{"x":0.5930232558139535,"y":0.8360655737704918},{"x":0.6046511627906976,"y":0.8387096774193549},{"x":0.6162790697674418,"y":0.8412698412698413},{"x":0.627906976744186,"y":0.84375},{"x":0.627906976744186,"y":0.8307692307692308},{"x":0.627906976744186,"y":0.8181818181818182},{"x":0.627906976744186,"y":0.8059701492537313},{"x":0.6395348837209303,"y":0.8088235294117647},{"x":0.6395348837209303,"y":0.7971014492753623},{"x":0.6511627906976745,"y":0.8},{"x":0.6511627906976745,"y":0.7887323943661971},{"x":0.6627906976744186,"y":0.7916666666666666},{"x":0.6627906976744186,"y":0.7808219178082192},{"x":0.6744186046511628,"y":0.7837837837837838},{"x":0.6744186046511628,"y":0.7733333333333333},{"x":0.6744186046511628,"y":0.7631578947368421},{"x":0.686046511627907,"y":0.7662337662337663},{"x":0.686046511627907,"y":0.7564102564102564},{"x":0.686046511627907,"y":0.7468354430379747},{"x":0.686046511627907,"y":0.7375},{"x":0.6976744186046512,"y":0.7407407407407407},{"x":0.6976744186046512,"y":0.7317073170731707},{"x":0.7093023255813954,"y":0.7349397590361446},{"x":0.7093023255813954,"y":0.7261904761904762},{"x":0.7209302325581395,"y":0.7294117647058823},{"x":0.7325581395348837,"y":0.7325581395348837},{"x":0.7441860465116279,"y":0.735632183908046},{"x":0.7558139534883721,"y":0.7386363636363636},{"x":0.7674418604651163,"y":0.7415730337078652},{"x":0.7790697674418605,"y":0.7444444444444445},{"x":0.7906976744186046,"y":0.7472527472527473},{"x":0.8023255813953488,"y":0.75},{"x":0.813953488372093,"y":0.7526881720430108},{"x":0.8255813953488372,"y":0.7553191489361702},{"x":0.8372093023255814,"y":0.7578947368421053},{"x":0.8488372093023255,"y":0.7604166666666666},{"x":0.8604651162790697,"y":0.7628865979381443},{"x":0.872093023255814,"y":0.7653061224489796},{"x":0.8837209302325582,"y":0.7676767676767676},{"x":0.8953488372093024,"y":0.77},{"x":0.9069767441860465,"y":0.7722772277227723},{"x":0.9186046511627907,"y":0.7745098039215687},{"x":0.9302325581395349,"y":0.7766990291262136},{"x":0.9418604651162791,"y":0.7788461538461539},{"x":0.9534883720930233,"y":0.780952380952381},{"x":0.9651162790697675,"y":0.7830188679245284},{"x":0.9767441860465116,"y":0.7850467289719626},{"x":0.9883720930232558,"y":0.7870370370370371},{"x":1.0,"y":0.7889908256880734}]},{"name":"Fold 0 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":0.0,"y":1.0},{"x":0.023255813953488372,"y":1.0},{"x":0.046511627906976744,"y":1.0},{"x":0.06976744186046512,"y":1.0},{"x":0.09302325581395349,"y":1.0},{"x":0.11627906976744186,"y":1.0},{"x":0.13953488372093023,"y":1.0},{"x":0.16279069767441862,"y":1.0},{"x":0.16279069767441862,"y":0.875},{"x":0.16279069767441862,"y":0.7777777777777778},{"x":0.18604651162790697,"y":0.8},{"x":0.18604651162790697,"y":0.7272727272727273},{"x":0.20930232558139536,"y":0.75},{"x":0.20930232558139536,"y":0.6923076923076923},{"x":0.23255813953488372,"y":0.7142857142857143},{"x":0.23255813953488372,"y":0.6666666666666666},{"x":0.23255813953488372,"y":0.625},{"x":0.2558139534883721,"y":0.6470588235294118},{"x":0.27906976744186046,"y":0.6666666666666666},{"x":0.27906976744186046,"y":0.631578947368421},{"x":0.3023255813953488,"y":0.65},{"x":0.3023255813953488,"y":0.6190476190476191},{"x":0.32558139534883723,"y":0.6363636363636364},{"x":0.3488372093023256,"y":0.6521739130434783},{"x":0.37209302325581395,"y":0.6666666666666666},{"x":0.3953488372093023,"y":0.68},{"x":0.4186046511627907,"y":0.6923076923076923},{"x":0.4418604651162791,"y":0.7037037037037037},{"x":0.46511627906976744,"y":0.7142857142857143},{"x":0.4883720930232558,"y":0.7241379310344828},{"x":0.5116279069767442,"y":0.7333333333333333},{"x":0.5348837209302325,"y":0.7419354838709677},{"x":0.5581395348837209,"y":0.75},{"x":0.5813953488372093,"y":0.7575757575757576},{"x":0.5813953488372093,"y":0.7352941176470589},{"x":0.5813953488372093,"y":0.7142857142857143},{"x":0.6046511627906976,"y":0.7222222222222222},{"x":0.6046511627906976,"y":0.7027027027027027},{"x":0.627906976744186,"y":0.7105263157894737},{"x":0.6511627906976745,"y":0.717948717948718},{"x":0.6744186046511628,"y":0.725},{"x":0.6976744186046512,"y":0.7317073170731707},{"x":0.6976744186046512,"y":0.7142857142857143},{"x":0.7209302325581395,"y":0.7209302325581395},{"x":0.7441860465116279,"y":0.7272727272727273},{"x":0.7674418604651163,"y":0.7333333333333333},{"x":0.7906976744186046,"y":0.7391304347826086},{"x":0.813953488372093,"y":0.7446808510638298},{"x":0.8372093023255814,"y":0.75},{"x":0.8604651162790697,"y":0.7551020408163265},{"x":0.8837209302325582,"y":0.76},{"x":0.9069767441860465,"y":0.7647058823529411},{"x":0.9302325581395349,"y":0.7692307692307693},{"x":0.9534883720930233,"y":0.7735849056603774},{"x":0.9767441860465116,"y":0.7777777777777778},{"x":1.0,"y":0.7818181818181819}]},{"name":"Fold 1 Train","color":"#3b82f6","dash":null,"points":[{"x":0.0,"y":1.0},{"x":0.011627906976744186,"y":1.0},{"x":0.023255813953488372,"y":1.0},{"x":0.03488372093023256,"y":1.0},{"x":0.046511627906976744,"y":1.0},{"x":0.05813953488372093,"y":1.0},{"x":0.06976744186046512,"y":1.0},{"x":0.08139534883720931,"y":1.0},{"x":0.09302325581395349,"y":1.0},{"x":0.10465116279069768,"y":1.0},{"x":0.11627906976744186,"y":1.0},{"x":0.12790697674418605,"y":1.0},{"x":0.13953488372093023,"y":1.0},{"x":0.1511627906976744,"y":1.0},{"x":0.16279069767441862,"y":1.0},{"x":0.1744186046511628,"y":1.0},{"x":0.18604651162790697,"y":1.0},{"x":0.19767441860465115,"y":1.0},{"x":0.20930232558139536,"y":1.0},{"x":0.22093023255813954,"y":1.0},{"x":0.23255813953488372,"y":1.0},{"x":0.2441860465116279,"y":1.0},{"x":0.2558139534883721,"y":1.0},{"x":0.26744186046511625,"y":1.0},{"x":0.27906976744186046,"y":1.0},{"x":0.29069767441860467,"y":1.0},{"x":0.3023255813953488,"y":1.0},{"x":0.313953488372093,"y":1.0},{"x":0.32558139534883723,"y":1.0},{"x":0.32558139534883723,"y":0.9655172413793104},{"x":0.32558139534883723,"y":0.9333333333333333},{"x":0.3372093023255814,"y":0.9354838709677419},{"x":0.3372093023255814,"y":0.90625},{"x":0.3488372093023256,"y":0.9090909090909091},{"x":0.36046511627906974,"y":0.9117647058823529},{"x":0.37209302325581395,"y":0.9142857142857143},{"x":0.37209302325581395,"y":0.8888888888888888},{"x":0.38372093023255816,"y":0.8918918918918919},{"x":0.3953488372093023,"y":0.8947368421052632},{"x":0.3953488372093023,"y":0.8717948717948718},{"x":0.3953488372093023,"y":0.85},{"x":0.3953488372093023,"y":0.8292682926829268},{"x":0.3953488372093023,"y":0.8095238095238095},{"x":0.3953488372093023,"y":0.7906976744186046},{"x":0.4069767441860465,"y":0.7954545454545454},{"x":0.4186046511627907,"y":0.8},{"x":0.43023255813953487,"y":0.8043478260869565},{"x":0.4418604651162791,"y":0.8085106382978723},{"x":0.45348837209302323,"y":0.8125},{"x":0.46511627906976744,"y":0.8163265306122449},{"x":0.47674418604651164,"y":0.82},{"x":0.4883720930232558,"y":0.8235294117647058},{"x":0.5,"y":0.8269230769230769},{"x":0.5116279069767442,"y":0.8301886792452831},{"x":0.5232558139534884,"y":0.8333333333333334},{"x":0.5348837209302325,"y":0.8363636363636363},{"x":0.5465116279069767,"y":0.8392857142857143},{"x":0.5581395348837209,"y":0.8421052631578947},{"x":0.5697674418604651,"y":0.8448275862068966},{"x":0.5813953488372093,"y":0.847457627118644},{"x":0.5930232558139535,"y":0.85},{"x":0.6046511627906976,"y":0.8524590163934426},{"x":0.6162790697674418,"y":0.8548387096774194},{"x":0.627906976744186,"y":0.8571428571428571},{"x":0.6395348837209303,"y":0.859375},{"x":0.6511627906976745,"y":0.8615384615384616},{"x":0.6627906976744186,"y":0.8636363636363636},{"x":0.6744186046511628,"y":0.8656716417910447},{"x":0.686046511627907,"y":0.8676470588235294},{"x":0.6976744186046512,"y":0.8695652173913043},{"x":0.6976744186046512,"y":0.8571428571428571},{"x":0.7093023255813954,"y":0.8591549295774648},{"x":0.7093023255813954,"y":0.8472222222222222},{"x":0.7209302325581395,"y":0.8493150684931506},{"x":0.7209302325581395,"y":0.8378378378378378},{"x":0.7325581395348837,"y":0.84},{"x":0.7441860465116279,"y":0.8421052631578947},{"x":0.7441860465116279,"y":0.8311688311688312},{"x":0.7441860465116279,"y":0.8205128205128205},{"x":0.7558139534883721,"y":0.8227848101265823},{"x":0.7558139534883721,"y":0.8125},{"x":0.7674418604651163,"y":0.8148148148148148},{"x":0.7674418604651163,"y":0.8048780487804879},{"x":0.7790697674418605,"y":0.8072289156626506},{"x":0.7790697674418605,"y":0.7976190476190477},{"x":0.7906976744186046,"y":0.8},{"x":0.7906976744186046,"y":0.7906976744186046},{"x":0.7906976744186046,"y":0.7816091954022989},{"x":0.8023255813953488,"y":0.7840909090909091},{"x":0.8023255813953488,"y":0.7752808988764045},{"x":0.813953488372093,"y":0.7777777777777778},{"x":0.8255813953488372,"y":0.7802197802197802},{"x":0.8255813953488372,"y":0.7717391304347826},{"x":0.8255813953488372,"y":0.7634408602150538},{"x":0.8255813953488372,"y":0.7553191489361702},{"x":0.8372093023255814,"y":0.7578947368421053},{"x":0.8488372093023255,"y":0.7604166666666666},{"x":0.8604651162790697,"y":0.7628865979381443},{"x":0.872093023255814,"y":0.7653061224489796},{"x":0.8837209302325582,"y":0.7676767676767676},{"x":0.8953488372093024,"y":0.77},{"x":0.9069767441860465,"y":0.7722772277227723},{"x":0.9186046511627907,"y":0.7745098039215687},{"x":0.9302325581395349,"y":0.7766990291262136},{"x":0.9418604651162791,"y":0.7788461538461539},{"x":0.9534883720930233,"y":0.780952380952381},{"x":0.9651162790697675,"y":0.7830188679245284},{"x":0.9767441860465116,"y":0.7850467289719626},{"x":0.9883720930232558,"y":0.7870370370370371},{"x":1.0,"y":0.7889908256880734}]},{"name":"Fold 1 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":0.0,"y":1.0},{"x":0.023255813953488372,"y":1.0},{"x":0.046511627906976744,"y":1.0},{"x":0.06976744186046512,"y":1.0},{"x":0.09302325581395349,"y":1.0},{"x":0.11627906976744186,"y":1.0},{"x":0.13953488372093023,"y":1.0},{"x":0.16279069767441862,"y":1.0},{"x":0.18604651162790697,"y":1.0},{"x":0.20930232558139536,"y":1.0},{"x":0.23255813953488372,"y":1.0},{"x":0.23255813953488372,"y":0.9090909090909091},{"x":0.2558139534883721,"y":0.9166666666666666},{"x":0.2558139534883721,"y":0.8461538461538461},{"x":0.27906976744186046,"y":0.8571428571428571},{"x":0.27906976744186046,"y":0.8},{"x":0.3023255813953488,"y":0.8125},{"x":0.3023255813953488,"y":0.7647058823529411},{"x":0.3023255813953488,"y":0.7222222222222222},{"x":0.32558139534883723,"y":0.7368421052631579},{"x":0.32558139534883723,"y":0.7},{"x":0.3488372093023256,"y":0.7142857142857143},{"x":0.37209302325581395,"y":0.7272727272727273},{"x":0.37209302325581395,"y":0.6956521739130435},{"x":0.37209302325581395,"y":0.6666666666666666},{"x":0.3953488372093023,"y":0.68},{"x":0.4186046511627907,"y":0.6923076923076923},{"x":0.4418604651162791,"y":0.7037037037037037},{"x":0.46511627906976744,"y":0.7142857142857143},{"x":0.4883720930232558,"y":0.7241379310344828},{"x":0.5116279069767442,"y":0.7333333333333333},{"x":0.5348837209302325,"y":0.7419354838709677},{"x":0.5581395348837209,"y":0.75},{"x":0.5813953488372093,"y":0.7575757575757576},{"x":0.6046511627906976,"y":0.7647058823529411},{"x":0.627906976744186,"y":0.7714285714285715},{"x":0.6511627906976745,"y":0.7777777777777778},{"x":0.6511627906976745,"y":0.7567567567567568},{"x":0.6744186046511628,"y":0.7631578947368421},{"x":0.6744186046511628,"y":0.7435897435897436},{"x":0.6976744186046512,"y":0.75},{"x":0.7209302325581395,"y":0.7560975609756098},{"x":0.7209302325581395,"y":0.7380952380952381},{"x":0.7441860465116279,"y":0.7441860465116279},{"x":0.7674418604651163,"y":0.75},{"x":0.7674418604651163,"y":0.7333333333333333},{"x":0.7906976744186046,"y":0.7391304347826086},{"x":0.813953488372093,"y":0.7446808510638298},{"x":0.8372093023255814,"y":0.75},{"x":0.8604651162790697,"y":0.7551020408163265},{"x":0.8837209302325582,"y":0.76},{"x":0.9069767441860465,"y":0.7647058823529411},{"x":0.9302325581395349,"y":0.7692307692307693},{"x":0.9534883720930233,"y":0.7735849056603774},{"x":0.9767441860465116,"y":0.7777777777777778},{"x":1.0,"y":0.7818181818181819}]},{"name":"Fold 2 Train","color":"#f59e0b","dash":null,"points":[{"x":0.0,"y":1.0},{"x":0.011627906976744186,"y":1.0},{"x":0.023255813953488372,"y":1.0},{"x":0.03488372093023256,"y":1.0},{"x":0.046511627906976744,"y":1.0},{"x":0.05813953488372093,"y":1.0},{"x":0.06976744186046512,"y":1.0},{"x":0.08139534883720931,"y":1.0},{"x":0.09302325581395349,"y":1.0},{"x":0.10465116279069768,"y":1.0},{"x":0.11627906976744186,"y":1.0},{"x":0.12790697674418605,"y":1.0},{"x":0.13953488372093023,"y":1.0},{"x":0.1511627906976744,"y":1.0},{"x":0.16279069767441862,"y":1.0},{"x":0.1744186046511628,"y":1.0},{"x":0.18604651162790697,"y":1.0},{"x":0.19767441860465115,"y":1.0},{"x":0.20930232558139536,"y":1.0},{"x":0.22093023255813954,"y":1.0},{"x":0.23255813953488372,"y":1.0},{"x":0.2441860465116279,"y":1.0},{"x":0.2558139534883721,"y":1.0},{"x":0.2558139534883721,"y":0.9565217391304348},{"x":0.26744186046511625,"y":0.9583333333333334},{"x":0.26744186046511625,"y":0.92},{"x":0.27906976744186046,"y":0.9230769230769231},{"x":0.27906976744186046,"y":0.8888888888888888},{"x":0.29069767441860467,"y":0.8928571428571429},{"x":0.3023255813953488,"y":0.896551724137931},{"x":0.313953488372093,"y":0.9},{"x":0.313953488372093,"y":0.8709677419354839},{"x":0.32558139534883723,"y":0.875},{"x":0.32558139534883723,"y":0.8484848484848485},{"x":0.3372093023255814,"y":0.8529411764705882},{"x":0.3372093023255814,"y":0.8285714285714286},{"x":0.3488372093023256,"y":0.8333333333333334},{"x":0.36046511627906974,"y":0.8378378378378378},{"x":0.36046511627906974,"y":0.8157894736842105},{"x":0.36046511627906974,"y":0.7948717948717948},{"x":0.37209302325581395,"y":0.8},{"x":0.38372093023255816,"y":0.8048780487804879},{"x":0.38372093023255816,"y":0.7857142857142857},{"x":0.3953488372093023,"y":0.7906976744186046},{"x":0.3953488372093023,"y":0.7727272727272727},{"x":0.3953488372093023,"y":0.7555555555555555},{"x":0.3953488372093023,"y":0.7391304347826086},{"x":0.4069767441860465,"y":0.7446808510638298},{"x":0.4186046511627907,"y":0.75},{"x":0.43023255813953487,"y":0.7551020408163265},{"x":0.4418604651162791,"y":0.76},{"x":0.45348837209302323,"y":0.7647058823529411},{"x":0.46511627906976744,"y":0.7692307692307693},{"x":0.47674418604651164,"y":0.7735849056603774},{"x":0.4883720930232558,"y":0.7777777777777778},{"x":0.5,"y":0.7818181818181819},{"x":0.5116279069767442,"y":0.7857142857142857},{"x":0.5232558139534884,"y":0.7894736842105263},{"x":0.5348837209302325,"y":0.7931034482758621},{"x":0.5465116279069767,"y":0.7966101694915254},{"x":0.5581395348837209,"y":0.8},{"x":0.5697674418604651,"y":0.8032786885245902},{"x":0.5813953488372093,"y":0.8064516129032258},{"x":0.5930232558139535,"y":0.8095238095238095},{"x":0.6046511627906976,"y":0.8125},{"x":0.6162790697674418,"y":0.8153846153846154},{"x":0.627906976744186,"y":0.8181818181818182},{"x":0.6395348837209303,"y":0.8208955223880597},{"x":0.6511627906976745,"y":0.8235294117647058},{"x":0.6627906976744186,"y":0.8260869565217391},{"x":0.6627906976744186,"y":0.8142857142857143},{"x":0.6744186046511628,"y":0.8169014084507042},{"x":0.6744186046511628,"y":0.8055555555555556},{"x":0.686046511627907,"y":0.8082191780821918},{"x":0.6976744186046512,"y":0.8108108108108109},{"x":0.6976744186046512,"y":0.8},{"x":0.6976744186046512,"y":0.7894736842105263},{"x":0.7093023255813954,"y":0.7922077922077922},{"x":0.7209302325581395,"y":0.7948717948717948},{"x":0.7209302325581395,"y":0.7848101265822784},{"x":0.7209302325581395,"y":0.775},{"x":0.7325581395348837,"y":0.7777777777777778},{"x":0.7441860465116279,"y":0.7804878048780488},{"x":0.7441860465116279,"y":0.7710843373493976},{"x":0.7558139534883721,"y":0.7738095238095238},{"x":0.7558139534883721,"y":0.7647058823529411},{"x":0.7674418604651163,"y":0.7674418604651163},{"x":0.7790697674418605,"y":0.7701149425287356},{"x":0.7790697674418605,"y":0.7613636363636364},{"x":0.7906976744186046,"y":0.7640449438202247},{"x":0.7906976744186046,"y":0.7555555555555555},{"x":0.8023255813953488,"y":0.7582417582417582},{"x":0.8023255813953488,"y":0.75},{"x":0.8023255813953488,"y":0.7419354838709677},{"x":0.813953488372093,"y":0.7446808510638298},{"x":0.8255813953488372,"y":0.7473684210526316},{"x":0.8372093023255814,"y":0.75},{"x":0.8488372093023255,"y":0.7525773195876289},{"x":0.8604651162790697,"y":0.7551020408163265},{"x":0.872093023255814,"y":0.7575757575757576},{"x":0.8837209302325582,"y":0.76},{"x":0.8953488372093024,"y":0.7623762376237624},{"x":0.9069767441860465,"y":0.7647058823529411},{"x":0.9186046511627907,"y":0.7669902912621359},{"x":0.9302325581395349,"y":0.7692307692307693},{"x":0.9418604651162791,"y":0.7714285714285715},{"x":0.9534883720930233,"y":0.7735849056603774},{"x":0.9651162790697675,"y":0.7757009345794392},{"x":0.9767441860465116,"y":0.7777777777777778},{"x":0.9883720930232558,"y":0.7798165137614679},{"x":1.0,"y":0.7818181818181819}]},{"name":"Fold 2 Validation","color":"#f59e0b","dash":"6 6","points":[{"x":0.0,"y":1.0},{"x":0.023255813953488372,"y":1.0},{"x":0.046511627906976744,"y":1.0},{"x":0.06976744186046512,"y":1.0},{"x":0.09302325581395349,"y":1.0},{"x":0.11627906976744186,"y":1.0},{"x":0.13953488372093023,"y":1.0},{"x":0.16279069767441862,"y":1.0},{"x":0.18604651162790697,"y":1.0},{"x":0.20930232558139536,"y":1.0},{"x":0.23255813953488372,"y":1.0},{"x":0.2558139534883721,"y":1.0},{"x":0.27906976744186046,"y":1.0},{"x":0.3023255813953488,"y":1.0},{"x":0.32558139534883723,"y":1.0},{"x":0.3488372093023256,"y":1.0},{"x":0.3488372093023256,"y":0.9375},{"x":0.3488372093023256,"y":0.8823529411764706},{"x":0.37209302325581395,"y":0.8888888888888888},{"x":0.37209302325581395,"y":0.8421052631578947},{"x":0.37209302325581395,"y":0.8},{"x":0.37209302325581395,"y":0.7619047619047619},{"x":0.3953488372093023,"y":0.7727272727272727},{"x":0.4186046511627907,"y":0.782608695652174},{"x":0.4418604651162791,"y":0.7916666666666666},{"x":0.46511627906976744,"y":0.8},{"x":0.4883720930232558,"y":0.8076923076923077},{"x":0.5116279069767442,"y":0.8148148148148148},{"x":0.5348837209302325,"y":0.8214285714285714},{"x":0.5581395348837209,"y":0.8275862068965517},{"x":0.5813953488372093,"y":0.8333333333333334},{"x":0.6046511627906976,"y":0.8387096774193549},{"x":0.627906976744186,"y":0.84375},{"x":0.6511627906976745,"y":0.8484848484848485},{"x":0.6744186046511628,"y":0.8529411764705882},{"x":0.6976744186046512,"y":0.8571428571428571},{"x":0.6976744186046512,"y":0.8333333333333334},{"x":0.7209302325581395,"y":0.8378378378378378},{"x":0.7441860465116279,"y":0.8421052631578947},{"x":0.7441860465116279,"y":0.8205128205128205},{"x":0.7441860465116279,"y":0.8},{"x":0.7441860465116279,"y":0.7804878048780488},{"x":0.7674418604651163,"y":0.7857142857142857},{"x":0.7674418604651163,"y":0.7674418604651163},{"x":0.7906976744186046,"y":0.7727272727272727},{"x":0.813953488372093,"y":0.7777777777777778},{"x":0.813953488372093,"y":0.7608695652173914},{"x":0.8372093023255814,"y":0.7659574468085106},{"x":0.8604651162790697,"y":0.7708333333333334},{"x":0.8837209302325582,"y":0.7755102040816326},{"x":0.9069767441860465,"y":0.78},{"x":0.9302325581395349,"y":0.7843137254901961},{"x":0.9534883720930233,"y":0.7884615384615384},{"x":0.9767441860465116,"y":0.7924528301886793},{"x":1.0,"y":0.7962962962962963}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-fold-curves' data-toggle-panel='fold-metric-calibration' hidden><div class='card card--wide'><span class='eyebrow'>Calibration by fold</span><div id='fold-metric-calibration-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'fold-metric-calibration-chart',payload:{"xLabel":"Predicted probability","yLabel":"Observed probability","series":[{"name":"Fold 0 Train","color":"#1e40af","dash":null,"points":[{"x":0.7871040808125405,"y":1.0},{"x":0.787878631506835,"y":1.0},{"x":0.7882157286603008,"y":0.5454545454545454},{"x":0.7882675424060083,"y":0.36363636363636365},{"x":0.7885446568629573,"y":0.9090909090909091},{"x":0.7892692397015881,"y":1.0},{"x":0.7897856184959924,"y":0.7272727272727273},{"x":0.7898821945945969,"y":0.5454545454545454},{"x":0.7900973781713908,"y":0.8181818181818182},{"x":0.7908665610566582,"y":1.0}]},{"name":"Fold 0 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":0.7868681228554683,"y":1.0},{"x":0.7876906069472219,"y":1.0},{"x":0.7881560408530413,"y":0.8333333333333334},{"x":0.7882680132070743,"y":0.4},{"x":0.7885887160224844,"y":1.0},{"x":0.7894760419432316,"y":1.0},{"x":0.7897474343974824,"y":0.6},{"x":0.7898134416833681,"y":0.5},{"x":0.7898938769610592,"y":0.4},{"x":0.7904002863215505,"y":1.0}]},{"name":"Fold 1 Train","color":"#3b82f6","dash":null,"points":[{"x":0.774819974941297,"y":1.0},{"x":0.7808366550157048,"y":0.6363636363636364},{"x":0.7816511210823908,"y":0.36363636363636365},{"x":0.7821732025772659,"y":0.7272727272727273},{"x":0.7848751367927779,"y":1.0},{"x":0.7920753866488786,"y":1.0},{"x":0.7942802360403495,"y":0.45454545454545453},{"x":0.795035934313704,"y":0.7272727272727273},{"x":0.7985914572856259,"y":1.0},{"x":0.8044442165015497,"y":1.0}]},{"name":"Fold 1 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":0.772907318741454,"y":1.0},{"x":0.77882748970798,"y":0.8},{"x":0.7811923757028622,"y":0.6666666666666666},{"x":0.7820357256900723,"y":0.8},{"x":0.7881545069841137,"y":1.0},{"x":0.7932880163507221,"y":0.6},{"x":0.7943395041532102,"y":0.6},{"x":0.7946403364977624,"y":0.5},{"x":0.7962087825678099,"y":0.8},{"x":0.8027458439184171,"y":1.0}]},{"name":"Fold 2 Train","color":"#f59e0b","dash":null,"points":[{"x":0.7757812002688073,"y":1.0},{"x":0.7782082689168603,"y":0.7272727272727273},{"x":0.7787411372339824,"y":0.5454545454545454},{"x":0.7790501832899671,"y":0.6363636363636364},{"x":0.7807093042444496,"y":1.0},{"x":0.7833660128971651,"y":0.8181818181818182},{"x":0.7840504642506461,"y":0.5454545454545454},{"x":0.7841936268696574,"y":0.5454545454545454},{"x":0.7855575957205958,"y":1.0},{"x":0.788292496489004,"y":1.0}]},{"name":"Fold 2 Validation","color":"#f59e0b","dash":"6 6","points":[{"x":0.7755619214705991,"y":1.0},{"x":0.7784387602822593,"y":0.8},{"x":0.7786785549831794,"y":0.2},{"x":0.7790042449300922,"y":0.8333333333333334},{"x":0.7800055219282022,"y":1.0},{"x":0.7828865321111225,"y":1.0},{"x":0.7839866820019258,"y":0.3333333333333333},{"x":0.7843356072846017,"y":0.8},{"x":0.7854637710977284,"y":1.0},{"x":0.7878335799158359,"y":1.0}]}],"diagonal":[[0.0,0.0],[1.0,1.0]]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section></div>
+    <script>
+      (() => {
+        const tooltip = (() => {
+          const node = document.createElement("div");
+          node.className = "d3-tooltip";
+          document.body.appendChild(node);
+          return {
+            show(event, html) {
+              node.innerHTML = html;
+              node.classList.add("is-visible");
+              this.move(event);
+            },
+            move(event) {
+              node.style.left = `${event.clientX + 16}px`;
+              node.style.top = `${event.clientY + 16}px`;
+            },
+            hide() {
+              node.classList.remove("is-visible");
+            },
+          };
+        })();
+
+        function ensureD3(container) {
+          if (window.d3) {
+            return true;
+          }
+          if (container) {
+            container.innerHTML = "<p class='muted'>D3.js could not be loaded in this environment.</p>";
+          }
+          return false;
+        }
+
+        function createSvg(container, config = {}) {
+          const width = Math.max(config.minWidth || 640, container.clientWidth || config.minWidth || 640);
+          const height = config.height || 360;
+          const margin = Object.assign({ top: 24, right: 24, bottom: 48, left: 64 }, config.margin || {});
+          const svg = window.d3
+            .select(container)
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("class", "d3-chart");
+          return { svg, width, height, margin, innerWidth: width - margin.left - margin.right, innerHeight: height - margin.top - margin.bottom };
+        }
+
+        function mountBarChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(260, rows.length * 48 + 70), margin: { top: 18, right: 90, bottom: 34, left: 160 } });
+          const { svg, width, height, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const extent = d3.extent(rows, (d) => Number(d.value));
+          const min = Math.min(0, extent[0] ?? 0);
+          const max = Math.max(0, extent[1] ?? 1);
+          const x = d3.scaleLinear().domain([min, max]).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((d) => d.label)).range([0, innerHeight]).padding(0.28);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".bar")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => Math.min(x(0), x(d.value)))
+            .attr("y", (d) => y(d.label))
+            .attr("width", (d) => Math.abs(x(d.value) - x(0)))
+            .attr("height", y.bandwidth())
+            .attr("rx", 10)
+            .attr("fill", (d) => d.color || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>${payload.metricLabel || "value"}: ${Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.selectAll(".bar-label")
+            .data(rows)
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.value) + (d.value >= 0 ? 8 : -8))
+            .attr("y", (d) => y(d.label) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", (d) => (d.value >= 0 ? "start" : "end"))
+            .attr("fill", "var(--text-main)")
+            .attr("font-size", 12)
+            .attr("font-weight", 700)
+            .text((d) => Number(d.value).toFixed(6));
+        }
+
+        function mountHeatmap(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const xLabels = payload.xLabels || [];
+          const yLabels = payload.yLabels || [];
+          const matrix = payload.matrix || [];
+          if (!xLabels.length || !yLabels.length) {
+            container.innerHTML = "<p class='muted'>No heatmap data available.</p>";
+            return;
+          }
+          const cellSize = 44;
+          const chart = createSvg(container, {
+            height: Math.max(250, yLabels.length * cellSize + 100),
+            minWidth: Math.max(560, xLabels.length * cellSize + 180),
+            margin: { top: 18, right: 24, bottom: 90, left: 160 },
+          });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleBand().domain(xLabels).range([0, innerWidth]).padding(0.08);
+          const y = d3.scaleBand().domain(yLabels).range([0, innerHeight]).padding(0.08);
+          const values = matrix.flat().filter((value) => value !== null && !Number.isNaN(Number(value)));
+          const color = d3.scaleLinear().domain([d3.min(values) ?? 0, d3.max(values) ?? 1]).range([payload.lowColor || "#eff6ff", payload.highColor || "#1d4ed8"]);
+          const rows = [];
+          matrix.forEach((row, rowIndex) => {
+            row.forEach((value, colIndex) => {
+              rows.push({ rowLabel: yLabels[rowIndex], colLabel: xLabels[colIndex], value });
+            });
+          });
+          g.selectAll("rect")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => x(d.colLabel))
+            .attr("y", (d) => y(d.rowLabel))
+            .attr("width", x.bandwidth())
+            .attr("height", y.bandwidth())
+            .attr("rx", 8)
+            .attr("fill", (d) => (d.value === null || Number.isNaN(Number(d.value)) ? "#f8fafc" : color(Number(d.value))))
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.rowLabel}</strong><br>${d.colLabel}: ${d.value === null || Number.isNaN(Number(d.value)) ? "n/a" : Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".cell-label")
+            .data(rows.filter((d) => d.value !== null && !Number.isNaN(Number(d.value))))
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.colLabel) + x.bandwidth() / 2)
+            .attr("y", (d) => y(d.rowLabel) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 11)
+            .attr("font-weight", 700)
+            .attr("fill", "white")
+            .text((d) => Number(d.value).toFixed(3));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).tickSize(0)).selectAll("text").attr("transform", "rotate(-25)").style("text-anchor", "end");
+        }
+
+        function mountSeriesChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const series = payload.series || [];
+          if (!series.length) {
+            container.innerHTML = "<p class='muted'>No series data available.</p>";
+            return;
+          }
+          const points = series.flatMap((item) => item.points || []);
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 26, bottom: 46, left: 58 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const xValues = points.map((point) => Number(point.x));
+          const yValues = points.map((point) => Number(point.y));
+          const x = d3.scaleLinear().domain(d3.extent(xValues)).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(yValues)).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          const line = d3.line().x((d) => x(Number(d.x))).y((d) => y(Number(d.y)));
+          if (payload.diagonal) {
+            g.append("line")
+              .attr("x1", x(payload.diagonal[0][0]))
+              .attr("y1", y(payload.diagonal[0][1]))
+              .attr("x2", x(payload.diagonal[1][0]))
+              .attr("y2", y(payload.diagonal[1][1]))
+              .attr("stroke", payload.diagonalColor || "var(--grid-soft)")
+              .attr("stroke-dasharray", "4 4")
+              .attr("stroke-width", 1.5);
+          }
+          series.forEach((item) => {
+            g.append("path")
+              .datum(item.points)
+              .attr("fill", "none")
+              .attr("stroke", item.color)
+              .attr("stroke-width", 2.6)
+              .attr("stroke-dasharray", item.dash || null)
+              .attr("d", line);
+            g.selectAll(`circle-${item.name}`)
+              .data(item.points)
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(Number(d.x)))
+              .attr("cy", (d) => y(Number(d.y)))
+              .attr("r", 4.2)
+              .attr("fill", item.color)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${item.name}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+        }
+
+        function mountDumbbell(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No fold data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(250, rows.length * 44 + 60), margin: { top: 18, right: 80, bottom: 38, left: 130 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = rows.flatMap((row) => [Number(row.train_value), Number(row.val_value)]).filter((value) => !Number.isNaN(value));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((row) => row.label)).range([0, innerHeight]).padding(0.32);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".segment")
+            .data(rows)
+            .enter()
+            .append("line")
+            .attr("x1", (d) => x(Number(d.train_value)))
+            .attr("x2", (d) => x(Number(d.val_value)))
+            .attr("y1", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("y2", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("stroke", (d) => d.color || "var(--accent-2)")
+            .attr("stroke-width", 4)
+            .attr("stroke-linecap", "round");
+          g.selectAll(".train-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.train_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.trainColor || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>Train: ${Number(d.train_value).toFixed(6)}<br>Validation: ${Number(d.val_value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".val-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.val_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.validationColor || "var(--series-2)");
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        function mountScatter(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const points = payload.points || [];
+          if (!points.length) {
+            container.innerHTML = "<p class='muted'>No scatter data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 24, bottom: 42, left: 56 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.x))).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.y))).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          g.selectAll("circle")
+            .data(points)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.x)))
+            .attr("cy", (d) => y(Number(d.y)))
+            .attr("r", 4.2)
+            .attr("fill", payload.color || "var(--series-2)")
+            .attr("opacity", 0.72)
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${payload.label || "Point"}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+            .on("mouseleave", () => tooltip.hide());
+        }
+
+        function mountBeeswarm(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const groups = payload.groups || [];
+          if (!groups.length) {
+            container.innerHTML = "<p class='muted'>No SHAP values available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(280, groups.length * 42 + 60), margin: { top: 18, right: 22, bottom: 36, left: 140 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = groups.flatMap((group) => group.values.map((value) => Number(value)));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(groups.map((group) => group.label)).range([0, innerHeight]).padding(0.3);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          groups.forEach((group, groupIndex) => {
+            const baseY = y(group.label) + y.bandwidth() / 2;
+            g.selectAll(`circle-${groupIndex}`)
+              .data(group.values.map((value, index) => ({ value: Number(value), offset: ((index % 9) - 4) * 2.2 })))
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(d.value))
+              .attr("cy", (d) => baseY + d.offset)
+              .attr("r", 3.6)
+              .attr("fill", group.color || "var(--accent)")
+              .attr("opacity", 0.68)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${group.label}</strong><br>SHAP: ${d.value.toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function activateToggle(groupName, targetId) {
+          const buttons = Array.from(document.querySelectorAll(`[data-toggle-button][data-toggle-group="${groupName}"]`));
+          const panels = Array.from(document.querySelectorAll(`[data-toggle-panel][data-toggle-group="${groupName}"]`));
+          for (const button of buttons) {
+            const isActive = button.dataset.toggleTarget === targetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+          }
+          for (const panel of panels) {
+            panel.hidden = panel.dataset.togglePanel !== targetId;
+          }
+        }
+
+        const buttons = Array.from(document.querySelectorAll("[data-toggle-button][data-toggle-group][data-toggle-target]"));
+        for (const button of buttons) {
+          button.addEventListener("click", () => {
+            const groupName = button.dataset.toggleGroup;
+            const targetId = button.dataset.toggleTarget;
+            activateToggle(groupName, targetId);
+            const scrollId = button.dataset.toggleScroll;
+            if (scrollId) {
+              const node = document.getElementById(scrollId);
+              if (node) {
+                node.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+              }
+            }
+          });
+        }
+
+        const groups = new Set(buttons.map((button) => button.dataset.toggleGroup));
+        for (const groupName of groups) {
+          const groupButtons = buttons.filter((button) => button.dataset.toggleGroup === groupName);
+          const defaultButton = groupButtons.find((button) => button.dataset.toggleDefault === "true") || groupButtons[0];
+          if (defaultButton) {
+            activateToggle(groupName, defaultButton.dataset.toggleTarget);
+          }
+        }
+
+        function flushPendingCharts() {
+          const queue = window.mlcraftPendingCharts || [];
+          while (queue.length) {
+            const item = queue.shift();
+            const mount = window.mlcraftD3 && window.mlcraftD3[item.chartType];
+            if (typeof mount === "function") {
+              mount(item.containerId, item.payload || {});
+            }
+          }
+        }
+
+        window.mlcraftD3 = {
+          mountBarChart,
+          mountHeatmap,
+          mountSeriesChart,
+          mountDumbbell,
+          mountScatter,
+          mountBeeswarm,
+          flushPendingCharts,
+        };
+        flushPendingCharts();
+      })();
+    </script>
+  </body>
+</html>

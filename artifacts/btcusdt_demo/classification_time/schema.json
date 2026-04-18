@@ -1,0 +1,628 @@
+{
+  "columns": [
+    {
+      "name": "timestamp",
+      "dtype": "datetime",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "open",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "high",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "low",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "volume",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "symbol",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 1,
+      "role": null
+    },
+    {
+      "name": "return_1",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "log_return_1",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_to_open",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "range_pct",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "body_to_range",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "upper_wick_pct",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "lower_wick_pct",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "dollar_volume",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "obv",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_2",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_3",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_8",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_13",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_21",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "sma_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "ema_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_sma_gap_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_ema_gap_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "volume_zscore_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_std_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "breakout_pct_5",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "sma_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "ema_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_sma_gap_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_ema_gap_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "volume_zscore_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_std_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "breakout_pct_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "sma_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "ema_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_sma_gap_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_ema_gap_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "volume_zscore_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_std_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "breakout_pct_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "sma_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "ema_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_sma_gap_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "close_ema_gap_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "volume_zscore_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "return_std_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "breakout_pct_50",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "atr_14",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "atr_pct_14",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "macd_line",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "macd_signal",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "macd_hist",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "obv_gap_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "roc_10",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "stoch_k_14",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "stoch_d_3",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "williams_r_14",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "cci_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "rsi_7",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 38,
+      "role": null
+    },
+    {
+      "name": "rsi_14",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 83,
+      "role": null
+    },
+    {
+      "name": "rsi_28",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 136,
+      "role": null
+    },
+    {
+      "name": "close_vwap_gap_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "bb_width_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "bb_position_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "cmf_20",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 206,
+      "role": null
+    },
+    {
+      "name": "adx_14",
+      "dtype": "float",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 124,
+      "role": null
+    },
+    {
+      "name": "candle_type",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 3,
+      "role": null
+    },
+    {
+      "name": "trend_bucket",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 2,
+      "role": null
+    },
+    {
+      "name": "volatility_bucket",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 2,
+      "role": null
+    },
+    {
+      "name": "volume_bucket",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 3,
+      "role": null
+    },
+    {
+      "name": "weekday_name",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 7,
+      "role": null
+    },
+    {
+      "name": "month_name",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 1,
+      "role": null
+    },
+    {
+      "name": "session_bucket",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 3,
+      "role": null
+    },
+    {
+      "name": "week_group",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 4,
+      "role": null
+    },
+    {
+      "name": "regime_group",
+      "dtype": "categorical",
+      "nullable": false,
+      "na_ratio": 0.0,
+      "cardinality": 4,
+      "role": null
+    }
+  ]
+}

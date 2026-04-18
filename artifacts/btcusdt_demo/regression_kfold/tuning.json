@@ -1,0 +1,3129 @@
+{
+  "task_spec": {
+    "task_type": "regression",
+    "loss_name": "squared_error",
+    "eval_metric": "rmse",
+    "higher_is_better": false,
+    "prediction_type": "value"
+  },
+  "best_params": {
+    "learning_rate": 0.12332428926885841,
+    "num_boost_round": 350,
+    "max_depth": 4,
+    "min_child_weight": 15.415835629405363,
+    "subsample": 0.9863005569524467,
+    "colsample_bytree": 0.6720695484503874,
+    "colsample_bylevel": 0.7654254776567667,
+    "gamma": 0.09544180221023509,
+    "lambda": 1.6146066014355627,
+    "alpha": 4.07465785741061,
+    "max_delta_step": 0.35036524101437316
+  },
+  "best_score": -0.006359467878906241,
+  "best_trial": {
+    "trial_number": 0,
+    "params": {
+      "learning_rate": 0.12332428926885841,
+      "num_boost_round": 350,
+      "max_depth": 4,
+      "min_child_weight": 15.415835629405363,
+      "subsample": 0.9863005569524467,
+      "colsample_bytree": 0.6720695484503874,
+      "colsample_bylevel": 0.7654254776567667,
+      "gamma": 0.09544180221023509,
+      "lambda": 1.6146066014355627,
+      "alpha": 4.07465785741061,
+      "max_delta_step": 0.35036524101437316
+    },
+    "train_metrics": {
+      "mae": 0.005591442976839371,
+      "mse": 3.9097528356000026e-05,
+      "rmse": 0.006250919112795965,
+      "r2": 0.025962302344879246,
+      "medae": 0.006077293384463299
+    },
+    "val_metrics": {
+      "mae": 0.005691100705662107,
+      "mse": 4.028481948099655e-05,
+      "rmse": 0.006341246125920341,
+      "r2": -0.010342083159370316,
+      "medae": 0.005848937262791567
+    },
+    "train_score": -0.006250919112795965,
+    "val_score": -0.006341246125920341,
+    "penalized_score": -0.006359467878906241,
+    "folds": [
+      {
+        "fold_index": 0,
+        "train_metrics": {
+          "mae": 0.005399353395669096,
+          "mse": 3.666607802967814e-05,
+          "rmse": 0.00605525210290027,
+          "r2": 0.01639586115300362,
+          "medae": 0.005761291643941804
+        },
+        "val_metrics": {
+          "mae": 0.006021511907570045,
+          "mse": 4.464589425709627e-05,
+          "rmse": 0.0066817583207637995,
+          "r2": 0.026704835965596807,
+          "medae": 0.0062945135126910145
+        },
+        "train_score": -0.00605525210290027,
+        "val_score": -0.0066817583207637995,
+        "penalized_score": -0.006713083631656976,
+        "train_evaluation": {
+          "task_spec": {
+            "task_type": "regression",
+            "loss_name": "squared_error",
+            "eval_metric": "rmse",
+            "higher_is_better": false,
+            "prediction_type": "value"
+          },
+          "metric_rows": [
+            {
+              "prediction_name": "train",
+              "metric_name": "mae",
+              "value": 0.005399353395669096,
+              "score": -0.005399353395669096,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "mse",
+              "value": 3.666607802967814e-05,
+              "score": -3.666607802967814e-05,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "rmse",
+              "value": 0.00605525210290027,
+              "score": -0.00605525210290027,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "r2",
+              "value": 0.01639586115300362,
+              "score": 0.01639586115300362,
+              "higher_is_better": true
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "medae",
+              "value": 0.005761291643941804,
+              "score": -0.005761291643941804,
+              "higher_is_better": false
+            }
+          ],
+          "curves": {
+            "train": [
+              {
+                "name": "residuals",
+                "x": [
+                  -0.010271271221302884,
+                  -0.00932597812307976,
+                  -0.008380685024856635,
+                  -0.007435391926633511,
+                  -0.006490098828410385,
+                  -0.005544805730187261,
+                  -0.004599512631964137,
+                  -0.003654219533741012,
+                  -0.0027089264355178878,
+                  -0.001763633337294763,
+                  -0.0008183402390716382,
+                  0.00012695285915148569,
+                  0.0010722459573746105,
+                  0.0020175390555977352,
+                  0.00296283215382086,
+                  0.003908125252043985,
+                  0.004853418350267109,
+                  0.005798711448490233,
+                  0.006744004546713358,
+                  0.007689297644936483
+                ],
+                "y": [
+                  5.0,
+                  7.0,
+                  6.0,
+                  5.0,
+                  2.0,
+                  4.0,
+                  5.0,
+                  4.0,
+                  2.0,
+                  5.0,
+                  3.0,
+                  5.0,
+                  2.0,
+                  6.0,
+                  4.0,
+                  10.0,
+                  5.0,
+                  3.0,
+                  16.0,
+                  10.0
+                ],
+                "x_label": "Residual",
+                "y_label": "Count",
+                "metadata": {}
+              }
+            ]
+          },
+          "metadata": {
+            "metric_names": [
+              "mae",
+              "mse",
+              "rmse",
+              "r2",
+              "medae"
+            ]
+          }
+        },
+        "val_evaluation": {
+          "task_spec": {
+            "task_type": "regression",
+            "loss_name": "squared_error",
+            "eval_metric": "rmse",
+            "higher_is_better": false,
+            "prediction_type": "value"
+          },
+          "metric_rows": [
+            {
+              "prediction_name": "validation",
+              "metric_name": "mae",
+              "value": 0.006021511907570045,
+              "score": -0.006021511907570045,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "mse",
+              "value": 4.464589425709627e-05,
+              "score": -4.464589425709627e-05,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "rmse",
+              "value": 0.0066817583207637995,
+              "score": -0.0066817583207637995,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "r2",
+              "value": 0.026704835965596807,
+              "score": 0.026704835965596807,
+              "higher_is_better": true
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "medae",
+              "value": 0.0062945135126910145,
+              "score": -0.0062945135126910145,
+              "higher_is_better": false
+            }
+          ],
+          "curves": {
+            "validation": [
+              {
+                "name": "residuals",
+                "x": [
+                  -0.010248042335995976,
+                  -0.00930359153315228,
+                  -0.008359140730308579,
+                  -0.007414689927464879,
+                  -0.00647023912462118,
+                  -0.005525788321777481,
+                  -0.004581337518933781,
+                  -0.003636886716090082,
+                  -0.0026924359132463826,
+                  -0.0017479851104026832,
+                  -0.0008035343075589842,
+                  0.00014091649528471476,
+                  0.0010853672981284137,
+                  0.0020298181009721136,
+                  0.0029742689038158134,
+                  0.003918719706659512,
+                  0.004863170509503211,
+                  0.005807621312346911,
+                  0.00675207211519061,
+                  0.00769652291803431
+                ],
+                "y": [
+                  5.0,
+                  5.0,
+                  2.0,
+                  2.0,
+                  4.0,
+                  1.0,
+                  1.0,
+                  0.0,
+                  2.0,
+                  1.0,
+                  2.0,
+                  1.0,
+                  3.0,
+                  2.0,
+                  2.0,
+                  0.0,
+                  4.0,
+                  8.0,
+                  4.0,
+                  6.0
+                ],
+                "x_label": "Residual",
+                "y_label": "Count",
+                "metadata": {}
+              }
+            ]
+          },
+          "metadata": {
+            "metric_names": [
+              "mae",
+              "mse",
+              "rmse",
+              "r2",
+              "medae"
+            ]
+          }
+        }
+      },
+      {
+        "fold_index": 1,
+        "train_metrics": {
+          "mae": 0.005757920222455994,
+          "mse": 4.134431266836243e-05,
+          "rmse": 0.006429954328637368,
+          "r2": 0.05609664065510056,
+          "medae": 0.006349375843665281
+        },
+        "val_metrics": {
+          "mae": 0.005374441603653548,
+          "mse": 3.622586025395195e-05,
+          "rmse": 0.006018792258746928,
+          "r2": -0.09628878433900989,
+          "medae": 0.005578697754989051
+        },
+        "train_score": -0.006429954328637368,
+        "val_score": -0.006018792258746928,
+        "penalized_score": -0.00603935036224145,
+        "train_evaluation": {
+          "task_spec": {
+            "task_type": "regression",
+            "loss_name": "squared_error",
+            "eval_metric": "rmse",
+            "higher_is_better": false,
+            "prediction_type": "value"
+          },
+          "metric_rows": [
+            {
+              "prediction_name": "train",
+              "metric_name": "mae",
+              "value": 0.005757920222455994,
+              "score": -0.005757920222455994,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "mse",
+              "value": 4.134431266836243e-05,
+              "score": -4.134431266836243e-05,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "rmse",
+              "value": 0.006429954328637368,
+              "score": -0.006429954328637368,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "r2",
+              "value": 0.05609664065510056,
+              "score": 0.05609664065510056,
+              "higher_is_better": true
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "medae",
+              "value": 0.006349375843665281,
+              "score": -0.006349375843665281,
+              "higher_is_better": false
+            }
+          ],
+          "curves": {
+            "train": [
+              {
+                "name": "residuals",
+                "x": [
+                  -0.010418266592235843,
+                  -0.009447131418178616,
+                  -0.00847599624412139,
+                  -0.007504861070064164,
+                  -0.006533725896006938,
+                  -0.005562590721949712,
+                  -0.004591455547892486,
+                  -0.00362032037383526,
+                  -0.0026491851997780336,
+                  -0.0016780500257208078,
+                  -0.000706914851663582,
+                  0.0002642203223936447,
+                  0.0012353554964508705,
+                  0.0022064906705080963,
+                  0.003177625844565322,
+                  0.004148761018622548,
+                  0.005119896192679774,
+                  0.006091031366737,
+                  0.007062166540794227,
+                  0.008033301714851452
+                ],
+                "y": [
+                  9.0,
+                  3.0,
+                  8.0,
+                  5.0,
+                  4.0,
+                  3.0,
+                  2.0,
+                  3.0,
+                  4.0,
+                  6.0,
+                  1.0,
+                  4.0,
+                  4.0,
+                  5.0,
+                  6.0,
+                  2.0,
+                  7.0,
+                  11.0,
+                  12.0,
+                  10.0
+                ],
+                "x_label": "Residual",
+                "y_label": "Count",
+                "metadata": {}
+              }
+            ]
+          },
+          "metadata": {
+            "metric_names": [
+              "mae",
+              "mse",
+              "rmse",
+              "r2",
+              "medae"
+            ]
+          }
+        },
+        "val_evaluation": {
+          "task_spec": {
+            "task_type": "regression",
+            "loss_name": "squared_error",
+            "eval_metric": "rmse",
+            "higher_is_better": false,
+            "prediction_type": "value"
+          },
+          "metric_rows": [
+            {
+              "prediction_name": "validation",
+              "metric_name": "mae",
+              "value": 0.005374441603653548,
+              "score": -0.005374441603653548,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "mse",
+              "value": 3.622586025395195e-05,
+              "score": -3.622586025395195e-05,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "rmse",
+              "value": 0.006018792258746928,
+              "score": -0.006018792258746928,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "r2",
+              "value": -0.09628878433900989,
+              "score": -0.09628878433900989,
+              "higher_is_better": true
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "medae",
+              "value": 0.005578697754989051,
+              "score": -0.005578697754989051,
+              "higher_is_better": false
+            }
+          ],
+          "curves": {
+            "validation": [
+              {
+                "name": "residuals",
+                "x": [
+                  -0.009765894838941571,
+                  -0.00882970199651559,
+                  -0.007893509154089607,
+                  -0.0069573163116636244,
+                  -0.006021123469237642,
+                  -0.0050849306268116595,
+                  -0.0041487377843856775,
+                  -0.0032125449419596955,
+                  -0.0022763520995337135,
+                  -0.0013401592571077314,
+                  -0.0004039664146817494,
+                  0.0005322264277442335,
+                  0.0014684192701702164,
+                  0.0024046121125961984,
+                  0.0033408049550221804,
+                  0.0042769977974481625,
+                  0.0052131906398741445,
+                  0.0061493834823001265,
+                  0.0070855763247261085,
+                  0.00802176916715209
+                ],
+                "y": [
+                  2.0,
+                  1.0,
+                  5.0,
+                  2.0,
+                  3.0,
+                  4.0,
+                  2.0,
+                  0.0,
+                  1.0,
+                  2.0,
+                  4.0,
+                  2.0,
+                  1.0,
+                  2.0,
+                  2.0,
+                  4.0,
+                  4.0,
+                  1.0,
+                  6.0,
+                  7.0
+                ],
+                "x_label": "Residual",
+                "y_label": "Count",
+                "metadata": {}
+              }
+            ]
+          },
+          "metadata": {
+            "metric_names": [
+              "mae",
+              "mse",
+              "rmse",
+              "r2",
+              "medae"
+            ]
+          }
+        }
+      },
+      {
+        "fold_index": 2,
+        "train_metrics": {
+          "mae": 0.005617055312393019,
+          "mse": 3.928219436995951e-05,
+          "rmse": 0.006267550906850259,
+          "r2": 0.005394405226533561,
+          "medae": 0.006121212665782813
+        },
+        "val_metrics": {
+          "mae": 0.0056773486057627295,
+          "mse": 3.9982703931941435e-05,
+          "rmse": 0.006323187798250297,
+          "r2": 0.03855769889530214,
+          "medae": 0.005673600520694635
+        },
+        "train_score": -0.006267550906850259,
+        "val_score": -0.006323187798250297,
+        "penalized_score": -0.006325969642820299,
+        "train_evaluation": {
+          "task_spec": {
+            "task_type": "regression",
+            "loss_name": "squared_error",
+            "eval_metric": "rmse",
+            "higher_is_better": false,
+            "prediction_type": "value"
+          },
+          "metric_rows": [
+            {
+              "prediction_name": "train",
+              "metric_name": "mae",
+              "value": 0.005617055312393019,
+              "score": -0.005617055312393019,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "mse",
+              "value": 3.928219436995951e-05,
+              "score": -3.928219436995951e-05,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "rmse",
+              "value": 0.006267550906850259,
+              "score": -0.006267550906850259,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "r2",
+              "value": 0.005394405226533561,
+              "score": 0.005394405226533561,
+              "higher_is_better": true
+            },
+            {
+              "prediction_name": "train",
+              "metric_name": "medae",
+              "value": 0.006121212665782813,
+              "score": -0.006121212665782813,
+              "higher_is_better": false
+            }
+          ],
+          "curves": {
+            "train": [
+              {
+                "name": "residuals",
+                "x": [
+                  -0.009879846084049052,
+                  -0.008923301074851439,
+                  -0.007966756065653825,
+                  -0.00701021105645621,
+                  -0.006053666047258597,
+                  -0.005097121038060983,
+                  -0.004140576028863368,
+                  -0.003184031019665755,
+                  -0.002227486010468141,
+                  -0.0012709410012705273,
+                  -0.0003143959920729137,
+                  0.0006421490171247008,
+                  0.0015986940263223145,
+                  0.002555239035519928,
+                  0.0035117840447175417,
+                  0.004468329053915155,
+                  0.00542487406311277,
+                  0.006381419072310384,
+                  0.007337964081507997,
+                  0.00829450909070561
+                ],
+                "y": [
+                  8.0,
+                  8.0,
+                  5.0,
+                  4.0,
+                  6.0,
+                  5.0,
+                  2.0,
+                  2.0,
+                  1.0,
+                  5.0,
+                  5.0,
+                  4.0,
+                  4.0,
+                  4.0,
+                  7.0,
+                  1.0,
+                  10.0,
+                  13.0,
+                  11.0,
+                  5.0
+                ],
+                "x_label": "Residual",
+                "y_label": "Count",
+                "metadata": {}
+              }
+            ]
+          },
+          "metadata": {
+            "metric_names": [
+              "mae",
+              "mse",
+              "rmse",
+              "r2",
+              "medae"
+            ]
+          }
+        },
+        "val_evaluation": {
+          "task_spec": {
+            "task_type": "regression",
+            "loss_name": "squared_error",
+            "eval_metric": "rmse",
+            "higher_is_better": false,
+            "prediction_type": "value"
+          },
+          "metric_rows": [
+            {
+              "prediction_name": "validation",
+              "metric_name": "mae",
+              "value": 0.0056773486057627295,
+              "score": -0.0056773486057627295,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "mse",
+              "value": 3.9982703931941435e-05,
+              "score": -3.9982703931941435e-05,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "rmse",
+              "value": 0.006323187798250297,
+              "score": -0.006323187798250297,
+              "higher_is_better": false
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "r2",
+              "value": 0.03855769889530214,
+              "score": 0.03855769889530214,
+              "higher_is_better": true
+            },
+            {
+              "prediction_name": "validation",
+              "metric_name": "medae",
+              "value": 0.005673600520694635,
+              "score": -0.005673600520694635,
+              "higher_is_better": false
+            }
+          ],
+          "curves": {
+            "validation": [
+              {
+                "name": "residuals",
+                "x": [
+                  -0.009902597370541418,
+                  -0.008948203764255284,
+                  -0.00799381015796915,
+                  -0.007039416551683016,
+                  -0.006085022945396882,
+                  -0.0051306293391107476,
+                  -0.004176235732824614,
+                  -0.00322184212653848,
+                  -0.0022674485202523464,
+                  -0.0013130549139662127,
+                  -0.00035866130768007903,
+                  0.0005957322986060555,
+                  0.0015501259048921901,
+                  0.002504519511178324,
+                  0.0034589131174644575,
+                  0.004413306723750591,
+                  0.005367700330036725,
+                  0.006322093936322859,
+                  0.007276487542608992,
+                  0.008230881148895126
+                ],
+                "y": [
+                  4.0,
+                  4.0,
+                  4.0,
+                  1.0,
+                  1.0,
+                  0.0,
+                  3.0,
+                  3.0,
+                  3.0,
+                  0.0,
+                  1.0,
+                  2.0,
+                  2.0,
+                  3.0,
+                  2.0,
+                  6.0,
+                  2.0,
+                  2.0,
+                  6.0,
+                  5.0
+                ],
+                "x_label": "Residual",
+                "y_label": "Count",
+                "metadata": {}
+              }
+            ]
+          },
+          "metadata": {
+            "metric_names": [
+              "mae",
+              "mse",
+              "rmse",
+              "r2",
+              "medae"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "history": [
+    {
+      "trial_number": 0,
+      "params": {
+        "learning_rate": 0.12332428926885841,
+        "num_boost_round": 350,
+        "max_depth": 4,
+        "min_child_weight": 15.415835629405363,
+        "subsample": 0.9863005569524467,
+        "colsample_bytree": 0.6720695484503874,
+        "colsample_bylevel": 0.7654254776567667,
+        "gamma": 0.09544180221023509,
+        "lambda": 1.6146066014355627,
+        "alpha": 4.07465785741061,
+        "max_delta_step": 0.35036524101437316
+      },
+      "train_metrics": {
+        "mae": 0.005591442976839371,
+        "mse": 3.9097528356000026e-05,
+        "rmse": 0.006250919112795965,
+        "r2": 0.025962302344879246,
+        "medae": 0.006077293384463299
+      },
+      "val_metrics": {
+        "mae": 0.005691100705662107,
+        "mse": 4.028481948099655e-05,
+        "rmse": 0.006341246125920341,
+        "r2": -0.010342083159370316,
+        "medae": 0.005848937262791567
+      },
+      "train_score": -0.006250919112795965,
+      "val_score": -0.006341246125920341,
+      "penalized_score": -0.006359467878906241,
+      "folds": [
+        {
+          "fold_index": 0,
+          "train_metrics": {
+            "mae": 0.005399353395669096,
+            "mse": 3.666607802967814e-05,
+            "rmse": 0.00605525210290027,
+            "r2": 0.01639586115300362,
+            "medae": 0.005761291643941804
+          },
+          "val_metrics": {
+            "mae": 0.006021511907570045,
+            "mse": 4.464589425709627e-05,
+            "rmse": 0.0066817583207637995,
+            "r2": 0.026704835965596807,
+            "medae": 0.0062945135126910145
+          },
+          "train_score": -0.00605525210290027,
+          "val_score": -0.0066817583207637995,
+          "penalized_score": -0.006713083631656976,
+          "train_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "train",
+                "metric_name": "mae",
+                "value": 0.005399353395669096,
+                "score": -0.005399353395669096,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "mse",
+                "value": 3.666607802967814e-05,
+                "score": -3.666607802967814e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "rmse",
+                "value": 0.00605525210290027,
+                "score": -0.00605525210290027,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "r2",
+                "value": 0.01639586115300362,
+                "score": 0.01639586115300362,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "medae",
+                "value": 0.005761291643941804,
+                "score": -0.005761291643941804,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "train": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.010271271221302884,
+                    -0.00932597812307976,
+                    -0.008380685024856635,
+                    -0.007435391926633511,
+                    -0.006490098828410385,
+                    -0.005544805730187261,
+                    -0.004599512631964137,
+                    -0.003654219533741012,
+                    -0.0027089264355178878,
+                    -0.001763633337294763,
+                    -0.0008183402390716382,
+                    0.00012695285915148569,
+                    0.0010722459573746105,
+                    0.0020175390555977352,
+                    0.00296283215382086,
+                    0.003908125252043985,
+                    0.004853418350267109,
+                    0.005798711448490233,
+                    0.006744004546713358,
+                    0.007689297644936483
+                  ],
+                  "y": [
+                    5.0,
+                    7.0,
+                    6.0,
+                    5.0,
+                    2.0,
+                    4.0,
+                    5.0,
+                    4.0,
+                    2.0,
+                    5.0,
+                    3.0,
+                    5.0,
+                    2.0,
+                    6.0,
+                    4.0,
+                    10.0,
+                    5.0,
+                    3.0,
+                    16.0,
+                    10.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          },
+          "val_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "validation",
+                "metric_name": "mae",
+                "value": 0.006021511907570045,
+                "score": -0.006021511907570045,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "mse",
+                "value": 4.464589425709627e-05,
+                "score": -4.464589425709627e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "rmse",
+                "value": 0.0066817583207637995,
+                "score": -0.0066817583207637995,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "r2",
+                "value": 0.026704835965596807,
+                "score": 0.026704835965596807,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "medae",
+                "value": 0.0062945135126910145,
+                "score": -0.0062945135126910145,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "validation": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.010248042335995976,
+                    -0.00930359153315228,
+                    -0.008359140730308579,
+                    -0.007414689927464879,
+                    -0.00647023912462118,
+                    -0.005525788321777481,
+                    -0.004581337518933781,
+                    -0.003636886716090082,
+                    -0.0026924359132463826,
+                    -0.0017479851104026832,
+                    -0.0008035343075589842,
+                    0.00014091649528471476,
+                    0.0010853672981284137,
+                    0.0020298181009721136,
+                    0.0029742689038158134,
+                    0.003918719706659512,
+                    0.004863170509503211,
+                    0.005807621312346911,
+                    0.00675207211519061,
+                    0.00769652291803431
+                  ],
+                  "y": [
+                    5.0,
+                    5.0,
+                    2.0,
+                    2.0,
+                    4.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    2.0,
+                    1.0,
+                    2.0,
+                    1.0,
+                    3.0,
+                    2.0,
+                    2.0,
+                    0.0,
+                    4.0,
+                    8.0,
+                    4.0,
+                    6.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          }
+        },
+        {
+          "fold_index": 1,
+          "train_metrics": {
+            "mae": 0.005757920222455994,
+            "mse": 4.134431266836243e-05,
+            "rmse": 0.006429954328637368,
+            "r2": 0.05609664065510056,
+            "medae": 0.006349375843665281
+          },
+          "val_metrics": {
+            "mae": 0.005374441603653548,
+            "mse": 3.622586025395195e-05,
+            "rmse": 0.006018792258746928,
+            "r2": -0.09628878433900989,
+            "medae": 0.005578697754989051
+          },
+          "train_score": -0.006429954328637368,
+          "val_score": -0.006018792258746928,
+          "penalized_score": -0.00603935036224145,
+          "train_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "train",
+                "metric_name": "mae",
+                "value": 0.005757920222455994,
+                "score": -0.005757920222455994,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "mse",
+                "value": 4.134431266836243e-05,
+                "score": -4.134431266836243e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "rmse",
+                "value": 0.006429954328637368,
+                "score": -0.006429954328637368,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "r2",
+                "value": 0.05609664065510056,
+                "score": 0.05609664065510056,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "medae",
+                "value": 0.006349375843665281,
+                "score": -0.006349375843665281,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "train": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.010418266592235843,
+                    -0.009447131418178616,
+                    -0.00847599624412139,
+                    -0.007504861070064164,
+                    -0.006533725896006938,
+                    -0.005562590721949712,
+                    -0.004591455547892486,
+                    -0.00362032037383526,
+                    -0.0026491851997780336,
+                    -0.0016780500257208078,
+                    -0.000706914851663582,
+                    0.0002642203223936447,
+                    0.0012353554964508705,
+                    0.0022064906705080963,
+                    0.003177625844565322,
+                    0.004148761018622548,
+                    0.005119896192679774,
+                    0.006091031366737,
+                    0.007062166540794227,
+                    0.008033301714851452
+                  ],
+                  "y": [
+                    9.0,
+                    3.0,
+                    8.0,
+                    5.0,
+                    4.0,
+                    3.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                    6.0,
+                    1.0,
+                    4.0,
+                    4.0,
+                    5.0,
+                    6.0,
+                    2.0,
+                    7.0,
+                    11.0,
+                    12.0,
+                    10.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          },
+          "val_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "validation",
+                "metric_name": "mae",
+                "value": 0.005374441603653548,
+                "score": -0.005374441603653548,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "mse",
+                "value": 3.622586025395195e-05,
+                "score": -3.622586025395195e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "rmse",
+                "value": 0.006018792258746928,
+                "score": -0.006018792258746928,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "r2",
+                "value": -0.09628878433900989,
+                "score": -0.09628878433900989,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "medae",
+                "value": 0.005578697754989051,
+                "score": -0.005578697754989051,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "validation": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.009765894838941571,
+                    -0.00882970199651559,
+                    -0.007893509154089607,
+                    -0.0069573163116636244,
+                    -0.006021123469237642,
+                    -0.0050849306268116595,
+                    -0.0041487377843856775,
+                    -0.0032125449419596955,
+                    -0.0022763520995337135,
+                    -0.0013401592571077314,
+                    -0.0004039664146817494,
+                    0.0005322264277442335,
+                    0.0014684192701702164,
+                    0.0024046121125961984,
+                    0.0033408049550221804,
+                    0.0042769977974481625,
+                    0.0052131906398741445,
+                    0.0061493834823001265,
+                    0.0070855763247261085,
+                    0.00802176916715209
+                  ],
+                  "y": [
+                    2.0,
+                    1.0,
+                    5.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                    2.0,
+                    0.0,
+                    1.0,
+                    2.0,
+                    4.0,
+                    2.0,
+                    1.0,
+                    2.0,
+                    2.0,
+                    4.0,
+                    4.0,
+                    1.0,
+                    6.0,
+                    7.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          }
+        },
+        {
+          "fold_index": 2,
+          "train_metrics": {
+            "mae": 0.005617055312393019,
+            "mse": 3.928219436995951e-05,
+            "rmse": 0.006267550906850259,
+            "r2": 0.005394405226533561,
+            "medae": 0.006121212665782813
+          },
+          "val_metrics": {
+            "mae": 0.0056773486057627295,
+            "mse": 3.9982703931941435e-05,
+            "rmse": 0.006323187798250297,
+            "r2": 0.03855769889530214,
+            "medae": 0.005673600520694635
+          },
+          "train_score": -0.006267550906850259,
+          "val_score": -0.006323187798250297,
+          "penalized_score": -0.006325969642820299,
+          "train_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "train",
+                "metric_name": "mae",
+                "value": 0.005617055312393019,
+                "score": -0.005617055312393019,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "mse",
+                "value": 3.928219436995951e-05,
+                "score": -3.928219436995951e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "rmse",
+                "value": 0.006267550906850259,
+                "score": -0.006267550906850259,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "r2",
+                "value": 0.005394405226533561,
+                "score": 0.005394405226533561,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "medae",
+                "value": 0.006121212665782813,
+                "score": -0.006121212665782813,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "train": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.009879846084049052,
+                    -0.008923301074851439,
+                    -0.007966756065653825,
+                    -0.00701021105645621,
+                    -0.006053666047258597,
+                    -0.005097121038060983,
+                    -0.004140576028863368,
+                    -0.003184031019665755,
+                    -0.002227486010468141,
+                    -0.0012709410012705273,
+                    -0.0003143959920729137,
+                    0.0006421490171247008,
+                    0.0015986940263223145,
+                    0.002555239035519928,
+                    0.0035117840447175417,
+                    0.004468329053915155,
+                    0.00542487406311277,
+                    0.006381419072310384,
+                    0.007337964081507997,
+                    0.00829450909070561
+                  ],
+                  "y": [
+                    8.0,
+                    8.0,
+                    5.0,
+                    4.0,
+                    6.0,
+                    5.0,
+                    2.0,
+                    2.0,
+                    1.0,
+                    5.0,
+                    5.0,
+                    4.0,
+                    4.0,
+                    4.0,
+                    7.0,
+                    1.0,
+                    10.0,
+                    13.0,
+                    11.0,
+                    5.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          },
+          "val_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "validation",
+                "metric_name": "mae",
+                "value": 0.0056773486057627295,
+                "score": -0.0056773486057627295,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "mse",
+                "value": 3.9982703931941435e-05,
+                "score": -3.9982703931941435e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "rmse",
+                "value": 0.006323187798250297,
+                "score": -0.006323187798250297,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "r2",
+                "value": 0.03855769889530214,
+                "score": 0.03855769889530214,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "medae",
+                "value": 0.005673600520694635,
+                "score": -0.005673600520694635,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "validation": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.009902597370541418,
+                    -0.008948203764255284,
+                    -0.00799381015796915,
+                    -0.007039416551683016,
+                    -0.006085022945396882,
+                    -0.0051306293391107476,
+                    -0.004176235732824614,
+                    -0.00322184212653848,
+                    -0.0022674485202523464,
+                    -0.0013130549139662127,
+                    -0.00035866130768007903,
+                    0.0005957322986060555,
+                    0.0015501259048921901,
+                    0.002504519511178324,
+                    0.0034589131174644575,
+                    0.004413306723750591,
+                    0.005367700330036725,
+                    0.006322093936322859,
+                    0.007276487542608992,
+                    0.008230881148895126
+                  ],
+                  "y": [
+                    4.0,
+                    4.0,
+                    4.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    3.0,
+                    3.0,
+                    3.0,
+                    0.0,
+                    1.0,
+                    2.0,
+                    2.0,
+                    3.0,
+                    2.0,
+                    6.0,
+                    2.0,
+                    2.0,
+                    6.0,
+                    5.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trial_number": 1,
+      "params": {
+        "learning_rate": 0.06581393650670153,
+        "num_boost_round": 150,
+        "max_depth": 4,
+        "min_child_weight": 0.17013839439130962,
+        "subsample": 0.8399239757890484,
+        "colsample_bytree": 0.5537679695959781,
+        "colsample_bylevel": 0.6085487290914952,
+        "gamma": 1.2153879626539817e-08,
+        "lambda": 0.06189690211700601,
+        "alpha": 55.65073548608173,
+        "max_delta_step": 2.178990091316889
+      },
+      "train_metrics": {
+        "mae": 0.005591442976839371,
+        "mse": 3.9097528356000026e-05,
+        "rmse": 0.006250919112795965,
+        "r2": 0.025962302344879246,
+        "medae": 0.006077293384463299
+      },
+      "val_metrics": {
+        "mae": 0.005691100705662107,
+        "mse": 4.028481948099655e-05,
+        "rmse": 0.006341246125920341,
+        "r2": -0.010342083159370316,
+        "medae": 0.005848937262791567
+      },
+      "train_score": -0.006250919112795965,
+      "val_score": -0.006341246125920341,
+      "penalized_score": -0.006359467878906241,
+      "folds": [
+        {
+          "fold_index": 0,
+          "train_metrics": {
+            "mae": 0.005399353395669096,
+            "mse": 3.666607802967814e-05,
+            "rmse": 0.00605525210290027,
+            "r2": 0.01639586115300362,
+            "medae": 0.005761291643941804
+          },
+          "val_metrics": {
+            "mae": 0.006021511907570045,
+            "mse": 4.464589425709627e-05,
+            "rmse": 0.0066817583207637995,
+            "r2": 0.026704835965596807,
+            "medae": 0.0062945135126910145
+          },
+          "train_score": -0.00605525210290027,
+          "val_score": -0.0066817583207637995,
+          "penalized_score": -0.006713083631656976,
+          "train_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "train",
+                "metric_name": "mae",
+                "value": 0.005399353395669096,
+                "score": -0.005399353395669096,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "mse",
+                "value": 3.666607802967814e-05,
+                "score": -3.666607802967814e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "rmse",
+                "value": 0.00605525210290027,
+                "score": -0.00605525210290027,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "r2",
+                "value": 0.01639586115300362,
+                "score": 0.01639586115300362,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "medae",
+                "value": 0.005761291643941804,
+                "score": -0.005761291643941804,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "train": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.010271271221302884,
+                    -0.00932597812307976,
+                    -0.008380685024856635,
+                    -0.007435391926633511,
+                    -0.006490098828410385,
+                    -0.005544805730187261,
+                    -0.004599512631964137,
+                    -0.003654219533741012,
+                    -0.0027089264355178878,
+                    -0.001763633337294763,
+                    -0.0008183402390716382,
+                    0.00012695285915148569,
+                    0.0010722459573746105,
+                    0.0020175390555977352,
+                    0.00296283215382086,
+                    0.003908125252043985,
+                    0.004853418350267109,
+                    0.005798711448490233,
+                    0.006744004546713358,
+                    0.007689297644936483
+                  ],
+                  "y": [
+                    5.0,
+                    7.0,
+                    6.0,
+                    5.0,
+                    2.0,
+                    4.0,
+                    5.0,
+                    4.0,
+                    2.0,
+                    5.0,
+                    3.0,
+                    5.0,
+                    2.0,
+                    6.0,
+                    4.0,
+                    10.0,
+                    5.0,
+                    3.0,
+                    16.0,
+                    10.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          },
+          "val_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "validation",
+                "metric_name": "mae",
+                "value": 0.006021511907570045,
+                "score": -0.006021511907570045,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "mse",
+                "value": 4.464589425709627e-05,
+                "score": -4.464589425709627e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "rmse",
+                "value": 0.0066817583207637995,
+                "score": -0.0066817583207637995,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "r2",
+                "value": 0.026704835965596807,
+                "score": 0.026704835965596807,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "medae",
+                "value": 0.0062945135126910145,
+                "score": -0.0062945135126910145,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "validation": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.010248042335995976,
+                    -0.00930359153315228,
+                    -0.008359140730308579,
+                    -0.007414689927464879,
+                    -0.00647023912462118,
+                    -0.005525788321777481,
+                    -0.004581337518933781,
+                    -0.003636886716090082,
+                    -0.0026924359132463826,
+                    -0.0017479851104026832,
+                    -0.0008035343075589842,
+                    0.00014091649528471476,
+                    0.0010853672981284137,
+                    0.0020298181009721136,
+                    0.0029742689038158134,
+                    0.003918719706659512,
+                    0.004863170509503211,
+                    0.005807621312346911,
+                    0.00675207211519061,
+                    0.00769652291803431
+                  ],
+                  "y": [
+                    5.0,
+                    5.0,
+                    2.0,
+                    2.0,
+                    4.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    2.0,
+                    1.0,
+                    2.0,
+                    1.0,
+                    3.0,
+                    2.0,
+                    2.0,
+                    0.0,
+                    4.0,
+                    8.0,
+                    4.0,
+                    6.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          }
+        },
+        {
+          "fold_index": 1,
+          "train_metrics": {
+            "mae": 0.005757920222455994,
+            "mse": 4.134431266836243e-05,
+            "rmse": 0.006429954328637368,
+            "r2": 0.05609664065510056,
+            "medae": 0.006349375843665281
+          },
+          "val_metrics": {
+            "mae": 0.005374441603653548,
+            "mse": 3.622586025395195e-05,
+            "rmse": 0.006018792258746928,
+            "r2": -0.09628878433900989,
+            "medae": 0.005578697754989051
+          },
+          "train_score": -0.006429954328637368,
+          "val_score": -0.006018792258746928,
+          "penalized_score": -0.00603935036224145,
+          "train_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "train",
+                "metric_name": "mae",
+                "value": 0.005757920222455994,
+                "score": -0.005757920222455994,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "mse",
+                "value": 4.134431266836243e-05,
+                "score": -4.134431266836243e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "rmse",
+                "value": 0.006429954328637368,
+                "score": -0.006429954328637368,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "r2",
+                "value": 0.05609664065510056,
+                "score": 0.05609664065510056,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "medae",
+                "value": 0.006349375843665281,
+                "score": -0.006349375843665281,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "train": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.010418266592235843,
+                    -0.009447131418178616,
+                    -0.00847599624412139,
+                    -0.007504861070064164,
+                    -0.006533725896006938,
+                    -0.005562590721949712,
+                    -0.004591455547892486,
+                    -0.00362032037383526,
+                    -0.0026491851997780336,
+                    -0.0016780500257208078,
+                    -0.000706914851663582,
+                    0.0002642203223936447,
+                    0.0012353554964508705,
+                    0.0022064906705080963,
+                    0.003177625844565322,
+                    0.004148761018622548,
+                    0.005119896192679774,
+                    0.006091031366737,
+                    0.007062166540794227,
+                    0.008033301714851452
+                  ],
+                  "y": [
+                    9.0,
+                    3.0,
+                    8.0,
+                    5.0,
+                    4.0,
+                    3.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                    6.0,
+                    1.0,
+                    4.0,
+                    4.0,
+                    5.0,
+                    6.0,
+                    2.0,
+                    7.0,
+                    11.0,
+                    12.0,
+                    10.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          },
+          "val_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "validation",
+                "metric_name": "mae",
+                "value": 0.005374441603653548,
+                "score": -0.005374441603653548,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "mse",
+                "value": 3.622586025395195e-05,
+                "score": -3.622586025395195e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "rmse",
+                "value": 0.006018792258746928,
+                "score": -0.006018792258746928,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "r2",
+                "value": -0.09628878433900989,
+                "score": -0.09628878433900989,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "medae",
+                "value": 0.005578697754989051,
+                "score": -0.005578697754989051,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "validation": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.009765894838941571,
+                    -0.00882970199651559,
+                    -0.007893509154089607,
+                    -0.0069573163116636244,
+                    -0.006021123469237642,
+                    -0.0050849306268116595,
+                    -0.0041487377843856775,
+                    -0.0032125449419596955,
+                    -0.0022763520995337135,
+                    -0.0013401592571077314,
+                    -0.0004039664146817494,
+                    0.0005322264277442335,
+                    0.0014684192701702164,
+                    0.0024046121125961984,
+                    0.0033408049550221804,
+                    0.0042769977974481625,
+                    0.0052131906398741445,
+                    0.0061493834823001265,
+                    0.0070855763247261085,
+                    0.00802176916715209
+                  ],
+                  "y": [
+                    2.0,
+                    1.0,
+                    5.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                    2.0,
+                    0.0,
+                    1.0,
+                    2.0,
+                    4.0,
+                    2.0,
+                    1.0,
+                    2.0,
+                    2.0,
+                    4.0,
+                    4.0,
+                    1.0,
+                    6.0,
+                    7.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          }
+        },
+        {
+          "fold_index": 2,
+          "train_metrics": {
+            "mae": 0.005617055312393019,
+            "mse": 3.928219436995951e-05,
+            "rmse": 0.006267550906850259,
+            "r2": 0.005394405226533561,
+            "medae": 0.006121212665782813
+          },
+          "val_metrics": {
+            "mae": 0.0056773486057627295,
+            "mse": 3.9982703931941435e-05,
+            "rmse": 0.006323187798250297,
+            "r2": 0.03855769889530214,
+            "medae": 0.005673600520694635
+          },
+          "train_score": -0.006267550906850259,
+          "val_score": -0.006323187798250297,
+          "penalized_score": -0.006325969642820299,
+          "train_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "train",
+                "metric_name": "mae",
+                "value": 0.005617055312393019,
+                "score": -0.005617055312393019,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "mse",
+                "value": 3.928219436995951e-05,
+                "score": -3.928219436995951e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "rmse",
+                "value": 0.006267550906850259,
+                "score": -0.006267550906850259,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "r2",
+                "value": 0.005394405226533561,
+                "score": 0.005394405226533561,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "train",
+                "metric_name": "medae",
+                "value": 0.006121212665782813,
+                "score": -0.006121212665782813,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "train": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.009879846084049052,
+                    -0.008923301074851439,
+                    -0.007966756065653825,
+                    -0.00701021105645621,
+                    -0.006053666047258597,
+                    -0.005097121038060983,
+                    -0.004140576028863368,
+                    -0.003184031019665755,
+                    -0.002227486010468141,
+                    -0.0012709410012705273,
+                    -0.0003143959920729137,
+                    0.0006421490171247008,
+                    0.0015986940263223145,
+                    0.002555239035519928,
+                    0.0035117840447175417,
+                    0.004468329053915155,
+                    0.00542487406311277,
+                    0.006381419072310384,
+                    0.007337964081507997,
+                    0.00829450909070561
+                  ],
+                  "y": [
+                    8.0,
+                    8.0,
+                    5.0,
+                    4.0,
+                    6.0,
+                    5.0,
+                    2.0,
+                    2.0,
+                    1.0,
+                    5.0,
+                    5.0,
+                    4.0,
+                    4.0,
+                    4.0,
+                    7.0,
+                    1.0,
+                    10.0,
+                    13.0,
+                    11.0,
+                    5.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          },
+          "val_evaluation": {
+            "task_spec": {
+              "task_type": "regression",
+              "loss_name": "squared_error",
+              "eval_metric": "rmse",
+              "higher_is_better": false,
+              "prediction_type": "value"
+            },
+            "metric_rows": [
+              {
+                "prediction_name": "validation",
+                "metric_name": "mae",
+                "value": 0.0056773486057627295,
+                "score": -0.0056773486057627295,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "mse",
+                "value": 3.9982703931941435e-05,
+                "score": -3.9982703931941435e-05,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "rmse",
+                "value": 0.006323187798250297,
+                "score": -0.006323187798250297,
+                "higher_is_better": false
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "r2",
+                "value": 0.03855769889530214,
+                "score": 0.03855769889530214,
+                "higher_is_better": true
+              },
+              {
+                "prediction_name": "validation",
+                "metric_name": "medae",
+                "value": 0.005673600520694635,
+                "score": -0.005673600520694635,
+                "higher_is_better": false
+              }
+            ],
+            "curves": {
+              "validation": [
+                {
+                  "name": "residuals",
+                  "x": [
+                    -0.009902597370541418,
+                    -0.008948203764255284,
+                    -0.00799381015796915,
+                    -0.007039416551683016,
+                    -0.006085022945396882,
+                    -0.0051306293391107476,
+                    -0.004176235732824614,
+                    -0.00322184212653848,
+                    -0.0022674485202523464,
+                    -0.0013130549139662127,
+                    -0.00035866130768007903,
+                    0.0005957322986060555,
+                    0.0015501259048921901,
+                    0.002504519511178324,
+                    0.0034589131174644575,
+                    0.004413306723750591,
+                    0.005367700330036725,
+                    0.006322093936322859,
+                    0.007276487542608992,
+                    0.008230881148895126
+                  ],
+                  "y": [
+                    4.0,
+                    4.0,
+                    4.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    3.0,
+                    3.0,
+                    3.0,
+                    0.0,
+                    1.0,
+                    2.0,
+                    2.0,
+                    3.0,
+                    2.0,
+                    6.0,
+                    2.0,
+                    2.0,
+                    6.0,
+                    5.0
+                  ],
+                  "x_label": "Residual",
+                  "y_label": "Count",
+                  "metadata": {}
+                }
+              ]
+            },
+            "metadata": {
+              "metric_names": [
+                "mae",
+                "mse",
+                "rmse",
+                "r2",
+                "medae"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "train_metrics": {
+    "mae": 0.005591442976839371,
+    "mse": 3.9097528356000026e-05,
+    "rmse": 0.006250919112795965,
+    "r2": 0.025962302344879246,
+    "medae": 0.006077293384463299
+  },
+  "val_metrics": {
+    "mae": 0.005691100705662107,
+    "mse": 4.028481948099655e-05,
+    "rmse": 0.006341246125920341,
+    "r2": -0.010342083159370316,
+    "medae": 0.005848937262791567
+  },
+  "penalized_score": -0.006359467878906241,
+  "fold_summaries": [
+    {
+      "fold_index": 0,
+      "train_metrics": {
+        "mae": 0.005399353395669096,
+        "mse": 3.666607802967814e-05,
+        "rmse": 0.00605525210290027,
+        "r2": 0.01639586115300362,
+        "medae": 0.005761291643941804
+      },
+      "val_metrics": {
+        "mae": 0.006021511907570045,
+        "mse": 4.464589425709627e-05,
+        "rmse": 0.0066817583207637995,
+        "r2": 0.026704835965596807,
+        "medae": 0.0062945135126910145
+      },
+      "train_score": -0.00605525210290027,
+      "val_score": -0.0066817583207637995,
+      "penalized_score": -0.006713083631656976,
+      "train_evaluation": {
+        "task_spec": {
+          "task_type": "regression",
+          "loss_name": "squared_error",
+          "eval_metric": "rmse",
+          "higher_is_better": false,
+          "prediction_type": "value"
+        },
+        "metric_rows": [
+          {
+            "prediction_name": "train",
+            "metric_name": "mae",
+            "value": 0.005399353395669096,
+            "score": -0.005399353395669096,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "mse",
+            "value": 3.666607802967814e-05,
+            "score": -3.666607802967814e-05,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "rmse",
+            "value": 0.00605525210290027,
+            "score": -0.00605525210290027,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "r2",
+            "value": 0.01639586115300362,
+            "score": 0.01639586115300362,
+            "higher_is_better": true
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "medae",
+            "value": 0.005761291643941804,
+            "score": -0.005761291643941804,
+            "higher_is_better": false
+          }
+        ],
+        "curves": {
+          "train": [
+            {
+              "name": "residuals",
+              "x": [
+                -0.010271271221302884,
+                -0.00932597812307976,
+                -0.008380685024856635,
+                -0.007435391926633511,
+                -0.006490098828410385,
+                -0.005544805730187261,
+                -0.004599512631964137,
+                -0.003654219533741012,
+                -0.0027089264355178878,
+                -0.001763633337294763,
+                -0.0008183402390716382,
+                0.00012695285915148569,
+                0.0010722459573746105,
+                0.0020175390555977352,
+                0.00296283215382086,
+                0.003908125252043985,
+                0.004853418350267109,
+                0.005798711448490233,
+                0.006744004546713358,
+                0.007689297644936483
+              ],
+              "y": [
+                5.0,
+                7.0,
+                6.0,
+                5.0,
+                2.0,
+                4.0,
+                5.0,
+                4.0,
+                2.0,
+                5.0,
+                3.0,
+                5.0,
+                2.0,
+                6.0,
+                4.0,
+                10.0,
+                5.0,
+                3.0,
+                16.0,
+                10.0
+              ],
+              "x_label": "Residual",
+              "y_label": "Count",
+              "metadata": {}
+            }
+          ]
+        },
+        "metadata": {
+          "metric_names": [
+            "mae",
+            "mse",
+            "rmse",
+            "r2",
+            "medae"
+          ]
+        }
+      },
+      "val_evaluation": {
+        "task_spec": {
+          "task_type": "regression",
+          "loss_name": "squared_error",
+          "eval_metric": "rmse",
+          "higher_is_better": false,
+          "prediction_type": "value"
+        },
+        "metric_rows": [
+          {
+            "prediction_name": "validation",
+            "metric_name": "mae",
+            "value": 0.006021511907570045,
+            "score": -0.006021511907570045,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "mse",
+            "value": 4.464589425709627e-05,
+            "score": -4.464589425709627e-05,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "rmse",
+            "value": 0.0066817583207637995,
+            "score": -0.0066817583207637995,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "r2",
+            "value": 0.026704835965596807,
+            "score": 0.026704835965596807,
+            "higher_is_better": true
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "medae",
+            "value": 0.0062945135126910145,
+            "score": -0.0062945135126910145,
+            "higher_is_better": false
+          }
+        ],
+        "curves": {
+          "validation": [
+            {
+              "name": "residuals",
+              "x": [
+                -0.010248042335995976,
+                -0.00930359153315228,
+                -0.008359140730308579,
+                -0.007414689927464879,
+                -0.00647023912462118,
+                -0.005525788321777481,
+                -0.004581337518933781,
+                -0.003636886716090082,
+                -0.0026924359132463826,
+                -0.0017479851104026832,
+                -0.0008035343075589842,
+                0.00014091649528471476,
+                0.0010853672981284137,
+                0.0020298181009721136,
+                0.0029742689038158134,
+                0.003918719706659512,
+                0.004863170509503211,
+                0.005807621312346911,
+                0.00675207211519061,
+                0.00769652291803431
+              ],
+              "y": [
+                5.0,
+                5.0,
+                2.0,
+                2.0,
+                4.0,
+                1.0,
+                1.0,
+                0.0,
+                2.0,
+                1.0,
+                2.0,
+                1.0,
+                3.0,
+                2.0,
+                2.0,
+                0.0,
+                4.0,
+                8.0,
+                4.0,
+                6.0
+              ],
+              "x_label": "Residual",
+              "y_label": "Count",
+              "metadata": {}
+            }
+          ]
+        },
+        "metadata": {
+          "metric_names": [
+            "mae",
+            "mse",
+            "rmse",
+            "r2",
+            "medae"
+          ]
+        }
+      }
+    },
+    {
+      "fold_index": 1,
+      "train_metrics": {
+        "mae": 0.005757920222455994,
+        "mse": 4.134431266836243e-05,
+        "rmse": 0.006429954328637368,
+        "r2": 0.05609664065510056,
+        "medae": 0.006349375843665281
+      },
+      "val_metrics": {
+        "mae": 0.005374441603653548,
+        "mse": 3.622586025395195e-05,
+        "rmse": 0.006018792258746928,
+        "r2": -0.09628878433900989,
+        "medae": 0.005578697754989051
+      },
+      "train_score": -0.006429954328637368,
+      "val_score": -0.006018792258746928,
+      "penalized_score": -0.00603935036224145,
+      "train_evaluation": {
+        "task_spec": {
+          "task_type": "regression",
+          "loss_name": "squared_error",
+          "eval_metric": "rmse",
+          "higher_is_better": false,
+          "prediction_type": "value"
+        },
+        "metric_rows": [
+          {
+            "prediction_name": "train",
+            "metric_name": "mae",
+            "value": 0.005757920222455994,
+            "score": -0.005757920222455994,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "mse",
+            "value": 4.134431266836243e-05,
+            "score": -4.134431266836243e-05,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "rmse",
+            "value": 0.006429954328637368,
+            "score": -0.006429954328637368,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "r2",
+            "value": 0.05609664065510056,
+            "score": 0.05609664065510056,
+            "higher_is_better": true
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "medae",
+            "value": 0.006349375843665281,
+            "score": -0.006349375843665281,
+            "higher_is_better": false
+          }
+        ],
+        "curves": {
+          "train": [
+            {
+              "name": "residuals",
+              "x": [
+                -0.010418266592235843,
+                -0.009447131418178616,
+                -0.00847599624412139,
+                -0.007504861070064164,
+                -0.006533725896006938,
+                -0.005562590721949712,
+                -0.004591455547892486,
+                -0.00362032037383526,
+                -0.0026491851997780336,
+                -0.0016780500257208078,
+                -0.000706914851663582,
+                0.0002642203223936447,
+                0.0012353554964508705,
+                0.0022064906705080963,
+                0.003177625844565322,
+                0.004148761018622548,
+                0.005119896192679774,
+                0.006091031366737,
+                0.007062166540794227,
+                0.008033301714851452
+              ],
+              "y": [
+                9.0,
+                3.0,
+                8.0,
+                5.0,
+                4.0,
+                3.0,
+                2.0,
+                3.0,
+                4.0,
+                6.0,
+                1.0,
+                4.0,
+                4.0,
+                5.0,
+                6.0,
+                2.0,
+                7.0,
+                11.0,
+                12.0,
+                10.0
+              ],
+              "x_label": "Residual",
+              "y_label": "Count",
+              "metadata": {}
+            }
+          ]
+        },
+        "metadata": {
+          "metric_names": [
+            "mae",
+            "mse",
+            "rmse",
+            "r2",
+            "medae"
+          ]
+        }
+      },
+      "val_evaluation": {
+        "task_spec": {
+          "task_type": "regression",
+          "loss_name": "squared_error",
+          "eval_metric": "rmse",
+          "higher_is_better": false,
+          "prediction_type": "value"
+        },
+        "metric_rows": [
+          {
+            "prediction_name": "validation",
+            "metric_name": "mae",
+            "value": 0.005374441603653548,
+            "score": -0.005374441603653548,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "mse",
+            "value": 3.622586025395195e-05,
+            "score": -3.622586025395195e-05,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "rmse",
+            "value": 0.006018792258746928,
+            "score": -0.006018792258746928,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "r2",
+            "value": -0.09628878433900989,
+            "score": -0.09628878433900989,
+            "higher_is_better": true
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "medae",
+            "value": 0.005578697754989051,
+            "score": -0.005578697754989051,
+            "higher_is_better": false
+          }
+        ],
+        "curves": {
+          "validation": [
+            {
+              "name": "residuals",
+              "x": [
+                -0.009765894838941571,
+                -0.00882970199651559,
+                -0.007893509154089607,
+                -0.0069573163116636244,
+                -0.006021123469237642,
+                -0.0050849306268116595,
+                -0.0041487377843856775,
+                -0.0032125449419596955,
+                -0.0022763520995337135,
+                -0.0013401592571077314,
+                -0.0004039664146817494,
+                0.0005322264277442335,
+                0.0014684192701702164,
+                0.0024046121125961984,
+                0.0033408049550221804,
+                0.0042769977974481625,
+                0.0052131906398741445,
+                0.0061493834823001265,
+                0.0070855763247261085,
+                0.00802176916715209
+              ],
+              "y": [
+                2.0,
+                1.0,
+                5.0,
+                2.0,
+                3.0,
+                4.0,
+                2.0,
+                0.0,
+                1.0,
+                2.0,
+                4.0,
+                2.0,
+                1.0,
+                2.0,
+                2.0,
+                4.0,
+                4.0,
+                1.0,
+                6.0,
+                7.0
+              ],
+              "x_label": "Residual",
+              "y_label": "Count",
+              "metadata": {}
+            }
+          ]
+        },
+        "metadata": {
+          "metric_names": [
+            "mae",
+            "mse",
+            "rmse",
+            "r2",
+            "medae"
+          ]
+        }
+      }
+    },
+    {
+      "fold_index": 2,
+      "train_metrics": {
+        "mae": 0.005617055312393019,
+        "mse": 3.928219436995951e-05,
+        "rmse": 0.006267550906850259,
+        "r2": 0.005394405226533561,
+        "medae": 0.006121212665782813
+      },
+      "val_metrics": {
+        "mae": 0.0056773486057627295,
+        "mse": 3.9982703931941435e-05,
+        "rmse": 0.006323187798250297,
+        "r2": 0.03855769889530214,
+        "medae": 0.005673600520694635
+      },
+      "train_score": -0.006267550906850259,
+      "val_score": -0.006323187798250297,
+      "penalized_score": -0.006325969642820299,
+      "train_evaluation": {
+        "task_spec": {
+          "task_type": "regression",
+          "loss_name": "squared_error",
+          "eval_metric": "rmse",
+          "higher_is_better": false,
+          "prediction_type": "value"
+        },
+        "metric_rows": [
+          {
+            "prediction_name": "train",
+            "metric_name": "mae",
+            "value": 0.005617055312393019,
+            "score": -0.005617055312393019,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "mse",
+            "value": 3.928219436995951e-05,
+            "score": -3.928219436995951e-05,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "rmse",
+            "value": 0.006267550906850259,
+            "score": -0.006267550906850259,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "r2",
+            "value": 0.005394405226533561,
+            "score": 0.005394405226533561,
+            "higher_is_better": true
+          },
+          {
+            "prediction_name": "train",
+            "metric_name": "medae",
+            "value": 0.006121212665782813,
+            "score": -0.006121212665782813,
+            "higher_is_better": false
+          }
+        ],
+        "curves": {
+          "train": [
+            {
+              "name": "residuals",
+              "x": [
+                -0.009879846084049052,
+                -0.008923301074851439,
+                -0.007966756065653825,
+                -0.00701021105645621,
+                -0.006053666047258597,
+                -0.005097121038060983,
+                -0.004140576028863368,
+                -0.003184031019665755,
+                -0.002227486010468141,
+                -0.0012709410012705273,
+                -0.0003143959920729137,
+                0.0006421490171247008,
+                0.0015986940263223145,
+                0.002555239035519928,
+                0.0035117840447175417,
+                0.004468329053915155,
+                0.00542487406311277,
+                0.006381419072310384,
+                0.007337964081507997,
+                0.00829450909070561
+              ],
+              "y": [
+                8.0,
+                8.0,
+                5.0,
+                4.0,
+                6.0,
+                5.0,
+                2.0,
+                2.0,
+                1.0,
+                5.0,
+                5.0,
+                4.0,
+                4.0,
+                4.0,
+                7.0,
+                1.0,
+                10.0,
+                13.0,
+                11.0,
+                5.0
+              ],
+              "x_label": "Residual",
+              "y_label": "Count",
+              "metadata": {}
+            }
+          ]
+        },
+        "metadata": {
+          "metric_names": [
+            "mae",
+            "mse",
+            "rmse",
+            "r2",
+            "medae"
+          ]
+        }
+      },
+      "val_evaluation": {
+        "task_spec": {
+          "task_type": "regression",
+          "loss_name": "squared_error",
+          "eval_metric": "rmse",
+          "higher_is_better": false,
+          "prediction_type": "value"
+        },
+        "metric_rows": [
+          {
+            "prediction_name": "validation",
+            "metric_name": "mae",
+            "value": 0.0056773486057627295,
+            "score": -0.0056773486057627295,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "mse",
+            "value": 3.9982703931941435e-05,
+            "score": -3.9982703931941435e-05,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "rmse",
+            "value": 0.006323187798250297,
+            "score": -0.006323187798250297,
+            "higher_is_better": false
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "r2",
+            "value": 0.03855769889530214,
+            "score": 0.03855769889530214,
+            "higher_is_better": true
+          },
+          {
+            "prediction_name": "validation",
+            "metric_name": "medae",
+            "value": 0.005673600520694635,
+            "score": -0.005673600520694635,
+            "higher_is_better": false
+          }
+        ],
+        "curves": {
+          "validation": [
+            {
+              "name": "residuals",
+              "x": [
+                -0.009902597370541418,
+                -0.008948203764255284,
+                -0.00799381015796915,
+                -0.007039416551683016,
+                -0.006085022945396882,
+                -0.0051306293391107476,
+                -0.004176235732824614,
+                -0.00322184212653848,
+                -0.0022674485202523464,
+                -0.0013130549139662127,
+                -0.00035866130768007903,
+                0.0005957322986060555,
+                0.0015501259048921901,
+                0.002504519511178324,
+                0.0034589131174644575,
+                0.004413306723750591,
+                0.005367700330036725,
+                0.006322093936322859,
+                0.007276487542608992,
+                0.008230881148895126
+              ],
+              "y": [
+                4.0,
+                4.0,
+                4.0,
+                1.0,
+                1.0,
+                0.0,
+                3.0,
+                3.0,
+                3.0,
+                0.0,
+                1.0,
+                2.0,
+                2.0,
+                3.0,
+                2.0,
+                6.0,
+                2.0,
+                2.0,
+                6.0,
+                5.0
+              ],
+              "x_label": "Residual",
+              "y_label": "Count",
+              "metadata": {}
+            }
+          ]
+        },
+        "metadata": {
+          "metric_names": [
+            "mae",
+            "mse",
+            "rmse",
+            "r2",
+            "medae"
+          ]
+        }
+      }
+    }
+  ],
+  "alpha": 0.05,
+  "metric_name": "rmse",
+  "test_metrics": {
+    "mae": 0.004113084719756373,
+    "mse": 2.300787157341521e-05,
+    "rmse": 0.004796652121367069,
+    "r2": -1.1358200466770412,
+    "medae": 0.004184519680358835
+  },
+  "test_score": -0.004796652121367069,
+  "test_evaluation": {
+    "task_spec": {
+      "task_type": "regression",
+      "loss_name": "squared_error",
+      "eval_metric": "rmse",
+      "higher_is_better": false,
+      "prediction_type": "value"
+    },
+    "metric_rows": [
+      {
+        "prediction_name": "final_test",
+        "metric_name": "mae",
+        "value": 0.004113084719756373,
+        "score": -0.004113084719756373,
+        "higher_is_better": false
+      },
+      {
+        "prediction_name": "final_test",
+        "metric_name": "mse",
+        "value": 2.300787157341521e-05,
+        "score": -2.300787157341521e-05,
+        "higher_is_better": false
+      },
+      {
+        "prediction_name": "final_test",
+        "metric_name": "rmse",
+        "value": 0.004796652121367069,
+        "score": -0.004796652121367069,
+        "higher_is_better": false
+      },
+      {
+        "prediction_name": "final_test",
+        "metric_name": "r2",
+        "value": -1.1358200466770412,
+        "score": -1.1358200466770412,
+        "higher_is_better": true
+      },
+      {
+        "prediction_name": "final_test",
+        "metric_name": "medae",
+        "value": 0.004184519680358835,
+        "score": -0.004184519680358835,
+        "higher_is_better": false
+      }
+    ],
+    "curves": {
+      "final_test": [
+        {
+          "name": "residuals",
+          "x": [
+            -0.007197172133830874,
+            -0.006674833042420889,
+            -0.006152493951010904,
+            -0.005630154859600918,
+            -0.005107815768190933,
+            -0.004585476676780947,
+            -0.004063137585370962,
+            -0.0035407984939609767,
+            -0.003018459402550991,
+            -0.0024961203111410054,
+            -0.0019737812197310202,
+            -0.001451442128321035,
+            -0.0009291030369110494,
+            -0.00040676394550106425,
+            0.00011557514590892094,
+            0.0006379142373189066,
+            0.0011602533287288922,
+            0.0016825924201388778,
+            0.0022049315115488634,
+            0.002727270602958848
+          ],
+          "y": [
+            8.0,
+            4.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            1.0,
+            2.0,
+            1.0,
+            2.0,
+            1.0,
+            2.0,
+            1.0,
+            2.0,
+            1.0,
+            2.0,
+            1.0
+          ],
+          "x_label": "Residual",
+          "y_label": "Count",
+          "metadata": {}
+        }
+      ]
+    },
+    "metadata": {
+      "metric_names": [
+        "mae",
+        "mse",
+        "rmse",
+        "r2",
+        "medae"
+      ]
+    }
+  },
+  "metadata": {
+    "model_type": "xgboost",
+    "model_types": [
+      "xgboost"
+    ],
+    "n_trials": 2
+  }
+}

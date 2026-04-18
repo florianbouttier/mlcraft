@@ -1,0 +1,1581 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>mlcraft Full Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+      :root {
+        --bg-top: #f6f8fb;
+        --bg-bottom: #eef3f8;
+        --panel: rgba(255, 255, 255, 0.92);
+        --panel-strong: rgba(255, 255, 255, 0.98);
+        --panel-alt: rgba(245, 248, 252, 0.92);
+        --border: rgba(97, 118, 138, 0.16);
+        --border-strong: rgba(45, 64, 89, 0.18);
+        --text-main: #10233a;
+        --text-soft: #5d7188;
+        --text-inverse: #f8fbff;
+        --accent: #1e40af;
+        --accent-soft: #dbe7ff;
+        --accent-2: #0f766e;
+        --accent-2-soft: #dbf4ef;
+        --danger: #c2410c;
+        --danger-soft: #fff1e8;
+        --shadow: 0 24px 64px rgba(16, 35, 58, 0.08);
+        --shadow-strong: 0 30px 90px rgba(16, 35, 58, 0.12);
+        --series-1: #1e40af;
+        --series-2: #3b82f6;
+        --series-3: #f59e0b;
+        --series-4: #0f766e;
+        --series-5: #c2410c;
+        --series-6: #7c3aed;
+        --series-muted: #91a8c6;
+        --line-soft: #dce5ef;
+        --grid-soft: #94a3b8;
+        --interaction-low: #ffffff;
+        --interaction-mid: #fecaca;
+        --interaction-high: #b91c1c;
+        --font-heading: &#34;Fira Code&#34;, &#34;IBM Plex Mono&#34;, monospace;
+        --font-body: &#34;Fira Sans&#34;, &#34;IBM Plex Sans&#34;, &#34;Segoe UI&#34;, sans-serif;
+        --font-mono: &#34;Fira Code&#34;, &#34;IBM Plex Mono&#34;, monospace;
+        --radius-panel: 28px;
+        --radius-card: 22px;
+        --radius-pill: 999px;
+        --space-page-max: 1680px;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--text-main);
+        background:
+          radial-gradient(circle at top left, rgba(30, 64, 175, 0.10), transparent 28%),
+          radial-gradient(circle at top right, rgba(245, 158, 11, 0.10), transparent 32%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+        font-family: var(--font-body);
+      }
+      .page {
+        max-width: var(--space-page-max);
+        margin: 0 auto;
+        padding: 34px 26px 72px;
+      }
+      h1, h2, h3, h4 {
+        color: var(--text-main);
+        line-height: 1.04;
+        margin: 0 0 12px;
+      }
+      h1, h2 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+      }
+      h3, h4 {
+        font-family: var(--font-body);
+        font-weight: 600;
+      }
+      h1 { font-size: clamp(2.1rem, 2.5vw, 3rem); letter-spacing: -0.05em; }
+      h2 { font-size: clamp(1.35rem, 1.65vw, 2rem); letter-spacing: -0.04em; }
+      h3 { font-size: 1.05rem; letter-spacing: -0.02em; }
+      h4 { font-size: 0.95rem; letter-spacing: -0.01em; }
+      p { margin: 0; line-height: 1.6; }
+      section { margin: 0 0 24px; }
+      .section-stack {
+        display: grid;
+        gap: 22px;
+      }
+      .section-head {
+        display: grid;
+        gap: 6px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-panel);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .hero-panel {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 255, 0.96));
+        border-color: var(--border-strong);
+      }
+      .viz-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+      .kpi-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      }
+      .two-column-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 22px;
+        background: var(--panel-strong);
+        min-height: 100%;
+      }
+      .card--wide { grid-column: 1 / -1; }
+      .metric-card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 255, 0.96));
+      }
+      .card--ghost {
+        background: rgba(255, 255, 255, 0.78);
+      }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 10px;
+        color: var(--text-soft);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .metric-big {
+        display: block;
+        font-size: clamp(1.45rem, 1.8vw, 2.3rem);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        margin-bottom: 4px;
+      }
+      .metric-subtle {
+        color: var(--text-soft);
+        font-size: 0.95rem;
+      }
+      .muted { color: var(--text-soft); }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.38rem 0.78rem;
+        border-radius: var(--radius-pill);
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+      .badge--alert {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .chip-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .chip {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 0.65rem 0.9rem;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .chip strong { font-size: 0.9rem; }
+      .segmented {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 6px;
+        border-radius: var(--radius-pill);
+        background: rgba(233, 239, 247, 0.92);
+        border: 1px solid var(--border);
+      }
+      .segmented-button {
+        appearance: none;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: transparent;
+        color: var(--text-soft);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.93rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0.7rem 1rem;
+        transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+      }
+      .segmented-button:hover {
+        color: var(--text-main);
+        transform: translateY(-1px);
+      }
+      .segmented-button.is-active {
+        background: var(--panel-strong);
+        color: var(--accent);
+        box-shadow: 0 8px 20px rgba(30, 64, 175, 0.14);
+      }
+      .summary-table {
+        overflow-x: auto;
+      }
+      .summary-table table {
+        min-width: 760px;
+      }
+      .summary-table tbody tr:hover {
+        background: rgba(219, 231, 255, 0.26);
+      }
+      .table-action {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--accent);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 0.16em;
+      }
+      .delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+      }
+      .delta--positive { color: var(--accent-2); }
+      .delta--negative { color: var(--danger); }
+      .toggle-panel[hidden] {
+        display: none !important;
+      }
+      .metric-panel {
+        display: grid;
+        gap: 18px;
+      }
+      .metric-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .metric-meta .badge {
+        background: rgba(241, 245, 252, 0.98);
+        color: var(--text-main);
+      }
+      .viz-shell {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 252, 0.96));
+        padding: 16px;
+      }
+      .viz-shell svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .d3-chart {
+        width: 100%;
+      }
+      .d3-tooltip {
+        position: fixed;
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(6px);
+        transition: opacity 100ms ease, transform 100ms ease;
+        min-width: 160px;
+        max-width: 280px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.98);
+        color: var(--text-main);
+        box-shadow: var(--shadow-strong);
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+      .d3-tooltip.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .d3-axis text {
+        fill: var(--text-soft);
+        font-size: 12px;
+      }
+      .d3-axis path,
+      .d3-axis line {
+        stroke: var(--line-soft);
+      }
+      .d3-grid line {
+        stroke: var(--line-soft);
+        stroke-dasharray: 2 4;
+      }
+      .d3-grid path {
+        display: none;
+      }
+      .legend-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-soft);
+        font-size: 0.92rem;
+      }
+      .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+      .comparison-list {
+        display: grid;
+        gap: 12px;
+      }
+      .comparison-row {
+        display: grid;
+        gap: 8px;
+      }
+      .comparison-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .comparison-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+      }
+      .comparison-track {
+        position: relative;
+        height: 12px;
+        border-radius: var(--radius-pill);
+        background: rgba(220, 229, 239, 0.88);
+        overflow: hidden;
+      }
+      .comparison-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: var(--radius-pill);
+      }
+      .mini-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+      .mini-stat {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: var(--panel-alt);
+        border: 1px solid var(--border);
+      }
+      .mini-stat strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.05rem;
+      }
+      .plot-frame {
+        overflow: hidden;
+        border-radius: 18px;
+        background: white;
+        padding: 10px;
+        border: 1px solid var(--border);
+      }
+      .plot-frame img {
+        width: 100%;
+        display: block;
+        height: auto;
+      }
+      .notes-list {
+        display: grid;
+        gap: 12px;
+      }
+      .note-item {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+      }
+      code, pre {
+        font-family: var(--font-mono);
+      }
+      code {
+        background: rgba(226, 232, 240, 0.9);
+        padding: 0.16rem 0.38rem;
+        border-radius: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.96rem;
+      }
+      th, td {
+        padding: 0.8rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: middle;
+      }
+      th {
+        color: var(--text-soft);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      @media (max-width: 720px) {
+        .page { padding: 20px 14px 40px; }
+        .panel { padding: 18px; border-radius: 22px; }
+        .viz-grid { grid-template-columns: 1fr; }
+        .kpi-grid { grid-template-columns: 1fr; }
+        .two-column-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page"><h1>mlcraft Full Report</h1><section><h2>Tuning</h2>
+    <div class="page"><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>KPI Matrix</span><h2>Train, validation, and holdout summary for every tracked metric</h2><p class='muted'>Start here, then jump into the metric explorer for fold-level behavior.</p></div><div class='summary-table'><table><thead><tr><th>Metric</th><th>Train</th><th>Validation</th><th>Test</th><th>Validation vs train</th><th>Test vs val</th><th>Direction</th></tr></thead><tbody><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-rmse' data-toggle-scroll='metric-explorer'>rmse</button></td><td>0.006251</td><td>0.006341</td><td>0.004797</td><td><span class='delta delta--negative'>-0.0001</span></td><td><span class='delta delta--positive'>+0.0015</span></td><td>lower</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-mae' data-toggle-scroll='metric-explorer'>mae</button></td><td>0.005591</td><td>0.005691</td><td>0.004113</td><td><span class='delta delta--negative'>-0.0001</span></td><td><span class='delta delta--positive'>+0.0016</span></td><td>lower</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-mse' data-toggle-scroll='metric-explorer'>mse</button></td><td>0.000039</td><td>0.000040</td><td>0.000023</td><td><span class='delta delta--negative'>-0.0000</span></td><td><span class='delta delta--positive'>+0.0000</span></td><td>lower</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-r2' data-toggle-scroll='metric-explorer'>r2</button></td><td>0.025962</td><td>-0.010342</td><td>-1.135820</td><td><span class='delta delta--negative'>-0.0363</span></td><td><span class='delta delta--negative'>-1.1255</span></td><td>higher</td></tr><tr><td><button class='table-action' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-medae' data-toggle-scroll='metric-explorer'>medae</button></td><td>0.006077</td><td>0.005849</td><td>0.004185</td><td><span class='delta delta--positive'>+0.0002</span></td><td><span class='delta delta--positive'>+0.0017</span></td><td>lower</td></tr></tbody></table></div></section><section class='panel hero-panel section-stack'><div class='section-head'><span class='eyebrow'>Tuning Overview</span><h2>rmse stays in focus</h2><p class='muted'>The report is intentionally interactive: pick a KPI, inspect folds, then compare final holdout behavior without leaving the page.</p></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Selected backend</span><strong class='metric-big'>xgboost</strong><span class='metric-subtle'>Winning framework after the search.</span></div><div class='card metric-card'><span class='eyebrow'>Optimized metric</span><strong class='metric-big'>rmse</strong><span class='metric-subtle'>alpha = 0.0500</span></div><div class='card metric-card'><span class='eyebrow'>Best penalized score</span><strong class='metric-big'>-0.006359</strong><span class='metric-subtle'>Internal Optuna objective, always maximized.</span></div><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.006251</strong><span class='metric-subtle'>Primary KPI averaged across train folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.006341</strong><span class='metric-subtle'>Primary KPI averaged across validation folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.004797</strong><span class='metric-subtle'>Final holdout KPI after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Generalization gap</span><strong class='metric-big'>0.000090</strong><span class='metric-subtle'>Absolute gap between train and validation scores.</span></div></div><span class='badge'>Validation gap is contained</span></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Backend Comparison</span><h2>Frameworks ranked by penalized validation score</h2></div><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>Backend ranking</span><div id='tuning-backend-ranking' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'tuning-backend-ranking',payload:{"rows":[{"label":"xgboost","value":-0.006359467878906241,"color":"#1e40af"}],"metricLabel":"penalized score"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section><section id='metric-explorer' class='panel section-stack'><div class='section-head'><span class='eyebrow'>Metric Explorer</span><h2>Select the KPI you want to inspect</h2><p class='muted'>Each KPI view compares fold-level train and validation values and keeps the holdout delta visible when available.</p></div><div class='segmented' role='group' aria-label='Tuning metric selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-rmse' data-toggle-default='true'>rmse</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-mae'>mae</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-mse'>mse</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-r2'>r2</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-metrics' data-toggle-target='metric-medae'>medae</button></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-rmse' hidden><div class='metric-meta'><span class='badge'>rmse</span><span class='badge'>lower is better</span><span class='badge'>Test vs validation = +0.0015</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.006251</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.006341</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.004797</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0001</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>rmse by fold</span><div id='metric-rmse-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-rmse-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.00605525210290027,"val_value":0.0066817583207637995,"color":"#c2410c"},{"label":"Fold 1","train_value":0.006429954328637368,"val_value":0.006018792258746928,"color":"#0f766e"},{"label":"Fold 2","train_value":0.006267550906850259,"val_value":0.006323187798250297,"color":"#c2410c"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Lower values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.0015</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-mae' hidden><div class='metric-meta'><span class='badge'>mae</span><span class='badge'>lower is better</span><span class='badge'>Test vs validation = +0.0016</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.005591</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.005691</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.004113</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0001</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>mae by fold</span><div id='metric-mae-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-mae-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.005399353395669096,"val_value":0.006021511907570045,"color":"#c2410c"},{"label":"Fold 1","train_value":0.005757920222455994,"val_value":0.005374441603653548,"color":"#0f766e"},{"label":"Fold 2","train_value":0.005617055312393019,"val_value":0.0056773486057627295,"color":"#c2410c"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Lower values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.0016</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-mse' hidden><div class='metric-meta'><span class='badge'>mse</span><span class='badge'>lower is better</span><span class='badge'>Test vs validation = +0.0000</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.000039</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.000040</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.000023</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0000</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>mse by fold</span><div id='metric-mse-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-mse-folds',payload:{"rows":[{"label":"Fold 0","train_value":3.666607802967814e-05,"val_value":4.464589425709627e-05,"color":"#c2410c"},{"label":"Fold 1","train_value":4.134431266836243e-05,"val_value":3.622586025395195e-05,"color":"#0f766e"},{"label":"Fold 2","train_value":3.928219436995951e-05,"val_value":3.9982703931941435e-05,"color":"#c2410c"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Lower values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.0000</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-r2' hidden><div class='metric-meta'><span class='badge'>r2</span><span class='badge'>higher is better</span><span class='badge'>Test vs validation = -1.1255</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.025962</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>-0.010342</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>-1.135820</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>-0.0363</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>r2 by fold</span><div id='metric-r2-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-r2-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.01639586115300362,"val_value":0.026704835965596807,"color":"#0f766e"},{"label":"Fold 1","train_value":0.05609664065510056,"val_value":-0.09628878433900989,"color":"#c2410c"},{"label":"Fold 2","train_value":0.005394405226533561,"val_value":0.03855769889530214,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Higher values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = -1.1255</p></div></div></div></div></div><div class='metric-panel toggle-panel' data-toggle-panel data-toggle-group='tuning-metrics' data-toggle-panel='metric-medae' hidden><div class='metric-meta'><span class='badge'>medae</span><span class='badge'>lower is better</span><span class='badge'>Test vs validation = +0.0017</span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Average train</span><strong class='metric-big'>0.006077</strong><span class='metric-subtle'>Average train value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average validation</span><strong class='metric-big'>0.005849</strong><span class='metric-subtle'>Average validation value across folds.</span></div><div class='card metric-card'><span class='eyebrow'>Average test</span><strong class='metric-big'>0.004185</strong><span class='metric-subtle'>Final holdout value after refit.</span></div><div class='card metric-card'><span class='eyebrow'>Validation vs train</span><strong class='metric-big'>+0.0002</strong><span class='metric-subtle'>Positive means validation is better after direction normalization.</span></div></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>medae by fold</span><div id='metric-medae-folds' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountDumbbell',containerId:'metric-medae-folds',payload:{"rows":[{"label":"Fold 0","train_value":0.005761291643941804,"val_value":0.0062945135126910145,"color":"#c2410c"},{"label":"Fold 1","train_value":0.006349375843665281,"val_value":0.005578697754989051,"color":"#0f766e"},{"label":"Fold 2","train_value":0.006121212665782813,"val_value":0.005673600520694635,"color":"#0f766e"}],"trainColor":"#1e40af","validationColor":"#3b82f6"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Reading Guide</span><div class='notes-list'><div class='note-item'><strong>Fold alignment</strong><p class='muted'>Shorter connectors mean train and validation stay close on that fold.</p></div><div class='note-item'><strong>Direction</strong><p class='muted'>Lower values are better for this KPI.</p></div><div class='note-item'><strong>Holdout</strong><p class='muted'>Test vs validation = +0.0017</p></div></div></div></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Search Dynamics</span><h2>How the search moved across trials</h2></div><div class='two-column-grid'><div class='card'><span class='eyebrow'>Trial History</span><div id='tuning-trial-history' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'tuning-trial-history',payload:{"xLabel":"trial","yLabel":"score","series":[{"name":"Penalized","color":"#1e40af","points":[{"x":0.0,"y":-0.006359467878906241},{"x":1.0,"y":-0.006359467878906241}]},{"name":"Validation","color":"#3b82f6","points":[{"x":0.0,"y":-0.006341246125920341},{"x":1.0,"y":-0.006341246125920341}]},{"name":"Train","color":"#f59e0b","points":[{"x":0.0,"y":-0.006250919112795965},{"x":1.0,"y":-0.006250919112795965}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div><div class='card'><span class='eyebrow'>Top Trials</span><div class='notes-list'><div class='note-item'><strong>Trial 0</strong><p class='muted'>penalized -0.006359 | train -0.006251 | validation -0.006341</p><p class='muted'>learning_rate=0.123324, num_boost_round=350, max_depth=4, min_child_weight=15.4158</p></div><div class='note-item'><strong>Trial 1</strong><p class='muted'>penalized -0.006359 | train -0.006251 | validation -0.006341</p><p class='muted'>learning_rate=0.0658139, num_boost_round=150, max_depth=4, min_child_weight=0.170138</p></div></div></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Winning Configuration</span><h2>Best trial configuration</h2></div><div class='chip-cloud'><span class='chip'><strong>learning_rate</strong><span>0.123324</span></span><span class='chip'><strong>num_boost_round</strong><span>350</span></span><span class='chip'><strong>max_depth</strong><span>4</span></span><span class='chip'><strong>min_child_weight</strong><span>15.4158</span></span><span class='chip'><strong>subsample</strong><span>0.986301</span></span><span class='chip'><strong>colsample_bytree</strong><span>0.67207</span></span><span class='chip'><strong>colsample_bylevel</strong><span>0.765425</span></span><span class='chip'><strong>gamma</strong><span>0.0954418</span></span><span class='chip'><strong>lambda</strong><span>1.61461</span></span><span class='chip'><strong>alpha</strong><span>4.07466</span></span><span class='chip'><strong>max_delta_step</strong><span>0.350365</span></span></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Best validation fold</span><strong class='metric-big'>Fold 1</strong><span class='metric-subtle'>validation score = -0.006019</span></div><div class='card metric-card'><span class='eyebrow'>Most fragile fold</span><strong class='metric-big'>Fold 0</strong><span class='metric-subtle'>validation score = -0.006682</span></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Final Test Curves</span><h2>Holdout behavior</h2></div><div class='segmented' role='group' aria-label='Holdout curve selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-holdout-curves' data-toggle-target='holdout-metric-residuals' data-toggle-default='true'>Residuals</button></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-holdout-curves' data-toggle-panel='holdout-metric-residuals' hidden><div class='card card--wide'><span class='eyebrow'>Residuals</span><div id='holdout-metric-residuals-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'holdout-metric-residuals-chart',payload:{"xLabel":"Residual","yLabel":"Count","series":[{"name":"final_test","color":"#1e40af","dash":null,"points":[{"x":-0.007197172133830874,"y":8.0},{"x":-0.006674833042420889,"y":4.0},{"x":-0.006152493951010904,"y":2.0},{"x":-0.005630154859600918,"y":2.0},{"x":-0.005107815768190933,"y":2.0},{"x":-0.004585476676780947,"y":2.0},{"x":-0.004063137585370962,"y":2.0},{"x":-0.0035407984939609767,"y":2.0},{"x":-0.003018459402550991,"y":2.0},{"x":-0.0024961203111410054,"y":1.0},{"x":-0.0019737812197310202,"y":2.0},{"x":-0.001451442128321035,"y":1.0},{"x":-0.0009291030369110494,"y":2.0},{"x":-0.00040676394550106425,"y":1.0},{"x":0.00011557514590892094,"y":2.0},{"x":0.0006379142373189066,"y":1.0},{"x":0.0011602533287288922,"y":2.0},{"x":0.0016825924201388778,"y":1.0},{"x":0.0022049315115488634,"y":2.0},{"x":0.002727270602958848,"y":1.0}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Fold Curves</span><h2>Train and validation curves by fold</h2></div><div class='segmented' role='group' aria-label='Fold curve selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='tuning-fold-curves' data-toggle-target='fold-metric-residuals' data-toggle-default='true'>Residuals by fold</button></div><div class='toggle-panel' data-toggle-panel data-toggle-group='tuning-fold-curves' data-toggle-panel='fold-metric-residuals' hidden><div class='card card--wide'><span class='eyebrow'>Residuals by fold</span><div id='fold-metric-residuals-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'fold-metric-residuals-chart',payload:{"xLabel":"Residual","yLabel":"Count","series":[{"name":"Fold 0 Train","color":"#1e40af","dash":null,"points":[{"x":-0.010271271221302884,"y":5.0},{"x":-0.00932597812307976,"y":7.0},{"x":-0.008380685024856635,"y":6.0},{"x":-0.007435391926633511,"y":5.0},{"x":-0.006490098828410385,"y":2.0},{"x":-0.005544805730187261,"y":4.0},{"x":-0.004599512631964137,"y":5.0},{"x":-0.003654219533741012,"y":4.0},{"x":-0.0027089264355178878,"y":2.0},{"x":-0.001763633337294763,"y":5.0},{"x":-0.0008183402390716382,"y":3.0},{"x":0.00012695285915148569,"y":5.0},{"x":0.0010722459573746105,"y":2.0},{"x":0.0020175390555977352,"y":6.0},{"x":0.00296283215382086,"y":4.0},{"x":0.003908125252043985,"y":10.0},{"x":0.004853418350267109,"y":5.0},{"x":0.005798711448490233,"y":3.0},{"x":0.006744004546713358,"y":16.0},{"x":0.007689297644936483,"y":10.0}]},{"name":"Fold 0 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":-0.010248042335995976,"y":5.0},{"x":-0.00930359153315228,"y":5.0},{"x":-0.008359140730308579,"y":2.0},{"x":-0.007414689927464879,"y":2.0},{"x":-0.00647023912462118,"y":4.0},{"x":-0.005525788321777481,"y":1.0},{"x":-0.004581337518933781,"y":1.0},{"x":-0.003636886716090082,"y":0.0},{"x":-0.0026924359132463826,"y":2.0},{"x":-0.0017479851104026832,"y":1.0},{"x":-0.0008035343075589842,"y":2.0},{"x":0.00014091649528471476,"y":1.0},{"x":0.0010853672981284137,"y":3.0},{"x":0.0020298181009721136,"y":2.0},{"x":0.0029742689038158134,"y":2.0},{"x":0.003918719706659512,"y":0.0},{"x":0.004863170509503211,"y":4.0},{"x":0.005807621312346911,"y":8.0},{"x":0.00675207211519061,"y":4.0},{"x":0.00769652291803431,"y":6.0}]},{"name":"Fold 1 Train","color":"#3b82f6","dash":null,"points":[{"x":-0.010418266592235843,"y":9.0},{"x":-0.009447131418178616,"y":3.0},{"x":-0.00847599624412139,"y":8.0},{"x":-0.007504861070064164,"y":5.0},{"x":-0.006533725896006938,"y":4.0},{"x":-0.005562590721949712,"y":3.0},{"x":-0.004591455547892486,"y":2.0},{"x":-0.00362032037383526,"y":3.0},{"x":-0.0026491851997780336,"y":4.0},{"x":-0.0016780500257208078,"y":6.0},{"x":-0.000706914851663582,"y":1.0},{"x":0.0002642203223936447,"y":4.0},{"x":0.0012353554964508705,"y":4.0},{"x":0.0022064906705080963,"y":5.0},{"x":0.003177625844565322,"y":6.0},{"x":0.004148761018622548,"y":2.0},{"x":0.005119896192679774,"y":7.0},{"x":0.006091031366737,"y":11.0},{"x":0.007062166540794227,"y":12.0},{"x":0.008033301714851452,"y":10.0}]},{"name":"Fold 1 Validation","color":"#3b82f6","dash":"6 6","points":[{"x":-0.009765894838941571,"y":2.0},{"x":-0.00882970199651559,"y":1.0},{"x":-0.007893509154089607,"y":5.0},{"x":-0.0069573163116636244,"y":2.0},{"x":-0.006021123469237642,"y":3.0},{"x":-0.0050849306268116595,"y":4.0},{"x":-0.0041487377843856775,"y":2.0},{"x":-0.0032125449419596955,"y":0.0},{"x":-0.0022763520995337135,"y":1.0},{"x":-0.0013401592571077314,"y":2.0},{"x":-0.0004039664146817494,"y":4.0},{"x":0.0005322264277442335,"y":2.0},{"x":0.0014684192701702164,"y":1.0},{"x":0.0024046121125961984,"y":2.0},{"x":0.0033408049550221804,"y":2.0},{"x":0.0042769977974481625,"y":4.0},{"x":0.0052131906398741445,"y":4.0},{"x":0.0061493834823001265,"y":1.0},{"x":0.0070855763247261085,"y":6.0},{"x":0.00802176916715209,"y":7.0}]},{"name":"Fold 2 Train","color":"#f59e0b","dash":null,"points":[{"x":-0.009879846084049052,"y":8.0},{"x":-0.008923301074851439,"y":8.0},{"x":-0.007966756065653825,"y":5.0},{"x":-0.00701021105645621,"y":4.0},{"x":-0.006053666047258597,"y":6.0},{"x":-0.005097121038060983,"y":5.0},{"x":-0.004140576028863368,"y":2.0},{"x":-0.003184031019665755,"y":2.0},{"x":-0.002227486010468141,"y":1.0},{"x":-0.0012709410012705273,"y":5.0},{"x":-0.0003143959920729137,"y":5.0},{"x":0.0006421490171247008,"y":4.0},{"x":0.0015986940263223145,"y":4.0},{"x":0.002555239035519928,"y":4.0},{"x":0.0035117840447175417,"y":7.0},{"x":0.004468329053915155,"y":1.0},{"x":0.00542487406311277,"y":10.0},{"x":0.006381419072310384,"y":13.0},{"x":0.007337964081507997,"y":11.0},{"x":0.00829450909070561,"y":5.0}]},{"name":"Fold 2 Validation","color":"#f59e0b","dash":"6 6","points":[{"x":-0.009902597370541418,"y":4.0},{"x":-0.008948203764255284,"y":4.0},{"x":-0.00799381015796915,"y":4.0},{"x":-0.007039416551683016,"y":1.0},{"x":-0.006085022945396882,"y":1.0},{"x":-0.0051306293391107476,"y":0.0},{"x":-0.004176235732824614,"y":3.0},{"x":-0.00322184212653848,"y":3.0},{"x":-0.0022674485202523464,"y":3.0},{"x":-0.0013130549139662127,"y":0.0},{"x":-0.00035866130768007903,"y":1.0},{"x":0.0005957322986060555,"y":2.0},{"x":0.0015501259048921901,"y":2.0},{"x":0.002504519511178324,"y":3.0},{"x":0.0034589131174644575,"y":2.0},{"x":0.004413306723750591,"y":6.0},{"x":0.005367700330036725,"y":2.0},{"x":0.006322093936322859,"y":2.0},{"x":0.007276487542608992,"y":6.0},{"x":0.008230881148895126,"y":5.0}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section></div>
+    <script>
+      (() => {
+        const tooltip = (() => {
+          const node = document.createElement("div");
+          node.className = "d3-tooltip";
+          document.body.appendChild(node);
+          return {
+            show(event, html) {
+              node.innerHTML = html;
+              node.classList.add("is-visible");
+              this.move(event);
+            },
+            move(event) {
+              node.style.left = `${event.clientX + 16}px`;
+              node.style.top = `${event.clientY + 16}px`;
+            },
+            hide() {
+              node.classList.remove("is-visible");
+            },
+          };
+        })();
+
+        function ensureD3(container) {
+          if (window.d3) {
+            return true;
+          }
+          if (container) {
+            container.innerHTML = "<p class='muted'>D3.js could not be loaded in this environment.</p>";
+          }
+          return false;
+        }
+
+        function createSvg(container, config = {}) {
+          const width = Math.max(config.minWidth || 640, container.clientWidth || config.minWidth || 640);
+          const height = config.height || 360;
+          const margin = Object.assign({ top: 24, right: 24, bottom: 48, left: 64 }, config.margin || {});
+          const svg = window.d3
+            .select(container)
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("class", "d3-chart");
+          return { svg, width, height, margin, innerWidth: width - margin.left - margin.right, innerHeight: height - margin.top - margin.bottom };
+        }
+
+        function mountBarChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(260, rows.length * 48 + 70), margin: { top: 18, right: 90, bottom: 34, left: 160 } });
+          const { svg, width, height, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const extent = d3.extent(rows, (d) => Number(d.value));
+          const min = Math.min(0, extent[0] ?? 0);
+          const max = Math.max(0, extent[1] ?? 1);
+          const x = d3.scaleLinear().domain([min, max]).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((d) => d.label)).range([0, innerHeight]).padding(0.28);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".bar")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => Math.min(x(0), x(d.value)))
+            .attr("y", (d) => y(d.label))
+            .attr("width", (d) => Math.abs(x(d.value) - x(0)))
+            .attr("height", y.bandwidth())
+            .attr("rx", 10)
+            .attr("fill", (d) => d.color || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>${payload.metricLabel || "value"}: ${Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.selectAll(".bar-label")
+            .data(rows)
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.value) + (d.value >= 0 ? 8 : -8))
+            .attr("y", (d) => y(d.label) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", (d) => (d.value >= 0 ? "start" : "end"))
+            .attr("fill", "var(--text-main)")
+            .attr("font-size", 12)
+            .attr("font-weight", 700)
+            .text((d) => Number(d.value).toFixed(6));
+        }
+
+        function mountHeatmap(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const xLabels = payload.xLabels || [];
+          const yLabels = payload.yLabels || [];
+          const matrix = payload.matrix || [];
+          if (!xLabels.length || !yLabels.length) {
+            container.innerHTML = "<p class='muted'>No heatmap data available.</p>";
+            return;
+          }
+          const cellSize = 44;
+          const chart = createSvg(container, {
+            height: Math.max(250, yLabels.length * cellSize + 100),
+            minWidth: Math.max(560, xLabels.length * cellSize + 180),
+            margin: { top: 18, right: 24, bottom: 90, left: 160 },
+          });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleBand().domain(xLabels).range([0, innerWidth]).padding(0.08);
+          const y = d3.scaleBand().domain(yLabels).range([0, innerHeight]).padding(0.08);
+          const values = matrix.flat().filter((value) => value !== null && !Number.isNaN(Number(value)));
+          const color = d3.scaleLinear().domain([d3.min(values) ?? 0, d3.max(values) ?? 1]).range([payload.lowColor || "#eff6ff", payload.highColor || "#1d4ed8"]);
+          const rows = [];
+          matrix.forEach((row, rowIndex) => {
+            row.forEach((value, colIndex) => {
+              rows.push({ rowLabel: yLabels[rowIndex], colLabel: xLabels[colIndex], value });
+            });
+          });
+          g.selectAll("rect")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => x(d.colLabel))
+            .attr("y", (d) => y(d.rowLabel))
+            .attr("width", x.bandwidth())
+            .attr("height", y.bandwidth())
+            .attr("rx", 8)
+            .attr("fill", (d) => (d.value === null || Number.isNaN(Number(d.value)) ? "#f8fafc" : color(Number(d.value))))
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.rowLabel}</strong><br>${d.colLabel}: ${d.value === null || Number.isNaN(Number(d.value)) ? "n/a" : Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".cell-label")
+            .data(rows.filter((d) => d.value !== null && !Number.isNaN(Number(d.value))))
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.colLabel) + x.bandwidth() / 2)
+            .attr("y", (d) => y(d.rowLabel) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 11)
+            .attr("font-weight", 700)
+            .attr("fill", "white")
+            .text((d) => Number(d.value).toFixed(3));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).tickSize(0)).selectAll("text").attr("transform", "rotate(-25)").style("text-anchor", "end");
+        }
+
+        function mountSeriesChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const series = payload.series || [];
+          if (!series.length) {
+            container.innerHTML = "<p class='muted'>No series data available.</p>";
+            return;
+          }
+          const points = series.flatMap((item) => item.points || []);
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 26, bottom: 46, left: 58 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const xValues = points.map((point) => Number(point.x));
+          const yValues = points.map((point) => Number(point.y));
+          const x = d3.scaleLinear().domain(d3.extent(xValues)).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(yValues)).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          const line = d3.line().x((d) => x(Number(d.x))).y((d) => y(Number(d.y)));
+          if (payload.diagonal) {
+            g.append("line")
+              .attr("x1", x(payload.diagonal[0][0]))
+              .attr("y1", y(payload.diagonal[0][1]))
+              .attr("x2", x(payload.diagonal[1][0]))
+              .attr("y2", y(payload.diagonal[1][1]))
+              .attr("stroke", payload.diagonalColor || "var(--grid-soft)")
+              .attr("stroke-dasharray", "4 4")
+              .attr("stroke-width", 1.5);
+          }
+          series.forEach((item) => {
+            g.append("path")
+              .datum(item.points)
+              .attr("fill", "none")
+              .attr("stroke", item.color)
+              .attr("stroke-width", 2.6)
+              .attr("stroke-dasharray", item.dash || null)
+              .attr("d", line);
+            g.selectAll(`circle-${item.name}`)
+              .data(item.points)
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(Number(d.x)))
+              .attr("cy", (d) => y(Number(d.y)))
+              .attr("r", 4.2)
+              .attr("fill", item.color)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${item.name}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+        }
+
+        function mountDumbbell(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No fold data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(250, rows.length * 44 + 60), margin: { top: 18, right: 80, bottom: 38, left: 130 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = rows.flatMap((row) => [Number(row.train_value), Number(row.val_value)]).filter((value) => !Number.isNaN(value));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((row) => row.label)).range([0, innerHeight]).padding(0.32);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".segment")
+            .data(rows)
+            .enter()
+            .append("line")
+            .attr("x1", (d) => x(Number(d.train_value)))
+            .attr("x2", (d) => x(Number(d.val_value)))
+            .attr("y1", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("y2", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("stroke", (d) => d.color || "var(--accent-2)")
+            .attr("stroke-width", 4)
+            .attr("stroke-linecap", "round");
+          g.selectAll(".train-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.train_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.trainColor || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>Train: ${Number(d.train_value).toFixed(6)}<br>Validation: ${Number(d.val_value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".val-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.val_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.validationColor || "var(--series-2)");
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        function mountScatter(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const points = payload.points || [];
+          if (!points.length) {
+            container.innerHTML = "<p class='muted'>No scatter data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 24, bottom: 42, left: 56 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.x))).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.y))).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          g.selectAll("circle")
+            .data(points)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.x)))
+            .attr("cy", (d) => y(Number(d.y)))
+            .attr("r", 4.2)
+            .attr("fill", payload.color || "var(--series-2)")
+            .attr("opacity", 0.72)
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${payload.label || "Point"}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+            .on("mouseleave", () => tooltip.hide());
+        }
+
+        function mountBeeswarm(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const groups = payload.groups || [];
+          if (!groups.length) {
+            container.innerHTML = "<p class='muted'>No SHAP values available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(280, groups.length * 42 + 60), margin: { top: 18, right: 22, bottom: 36, left: 140 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = groups.flatMap((group) => group.values.map((value) => Number(value)));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(groups.map((group) => group.label)).range([0, innerHeight]).padding(0.3);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          groups.forEach((group, groupIndex) => {
+            const baseY = y(group.label) + y.bandwidth() / 2;
+            g.selectAll(`circle-${groupIndex}`)
+              .data(group.values.map((value, index) => ({ value: Number(value), offset: ((index % 9) - 4) * 2.2 })))
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(d.value))
+              .attr("cy", (d) => baseY + d.offset)
+              .attr("r", 3.6)
+              .attr("fill", group.color || "var(--accent)")
+              .attr("opacity", 0.68)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${group.label}</strong><br>SHAP: ${d.value.toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function activateToggle(groupName, targetId) {
+          const buttons = Array.from(document.querySelectorAll(`[data-toggle-button][data-toggle-group="${groupName}"]`));
+          const panels = Array.from(document.querySelectorAll(`[data-toggle-panel][data-toggle-group="${groupName}"]`));
+          for (const button of buttons) {
+            const isActive = button.dataset.toggleTarget === targetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+          }
+          for (const panel of panels) {
+            panel.hidden = panel.dataset.togglePanel !== targetId;
+          }
+        }
+
+        const buttons = Array.from(document.querySelectorAll("[data-toggle-button][data-toggle-group][data-toggle-target]"));
+        for (const button of buttons) {
+          button.addEventListener("click", () => {
+            const groupName = button.dataset.toggleGroup;
+            const targetId = button.dataset.toggleTarget;
+            activateToggle(groupName, targetId);
+            const scrollId = button.dataset.toggleScroll;
+            if (scrollId) {
+              const node = document.getElementById(scrollId);
+              if (node) {
+                node.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+              }
+            }
+          });
+        }
+
+        const groups = new Set(buttons.map((button) => button.dataset.toggleGroup));
+        for (const groupName of groups) {
+          const groupButtons = buttons.filter((button) => button.dataset.toggleGroup === groupName);
+          const defaultButton = groupButtons.find((button) => button.dataset.toggleDefault === "true") || groupButtons[0];
+          if (defaultButton) {
+            activateToggle(groupName, defaultButton.dataset.toggleTarget);
+          }
+        }
+
+        function flushPendingCharts() {
+          const queue = window.mlcraftPendingCharts || [];
+          while (queue.length) {
+            const item = queue.shift();
+            const mount = window.mlcraftD3 && window.mlcraftD3[item.chartType];
+            if (typeof mount === "function") {
+              mount(item.containerId, item.payload || {});
+            }
+          }
+        }
+
+        window.mlcraftD3 = {
+          mountBarChart,
+          mountHeatmap,
+          mountSeriesChart,
+          mountDumbbell,
+          mountScatter,
+          mountBeeswarm,
+          flushPendingCharts,
+        };
+        flushPendingCharts();
+      })();
+    </script>
+  </section><section><h2>Evaluation</h2>
+    <div class="page"><section class='panel hero-panel section-stack'><div class='section-head'><span class='eyebrow'>Evaluation Overview</span><h2>Regression comparison</h2><p class='muted'>The report is now driven by in-browser D3 charts so you can change the metric focus without regenerating the document.</p></div><div class='kpi-grid'><div class='card metric-card'><span class='eyebrow'>Compared models</span><strong class='metric-big'>1</strong><span class='metric-subtle'>Prediction bundles in this run.</span></div><div class='card metric-card'><span class='eyebrow'>Focus metric</span><strong class='metric-big'>rmse</strong><span class='metric-subtle'>Lower is better</span></div><div class='card metric-card'><span class='eyebrow'>Leader</span><strong class='metric-big'>final_test</strong><span class='metric-subtle'>rmse = 0.004797</span></div><div class='card metric-card'><span class='eyebrow'>Lead margin</span><strong class='metric-big'>0.000000</strong><span class='metric-subtle'>Gap vs the next best score.</span></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Graphical Leaderboard</span><h2>Metric explorer</h2><p class='muted'>Select any metric to re-rank predictions instantly. The heatmap stays as the dense comparison view across all metrics.</p></div><div class='segmented' role='group' aria-label='Evaluation metric selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='evaluation-metrics' data-toggle-target='evaluation-metric-mae' data-toggle-default='true'>mae</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='evaluation-metrics' data-toggle-target='evaluation-metric-mse'>mse</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='evaluation-metrics' data-toggle-target='evaluation-metric-rmse'>rmse</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='evaluation-metrics' data-toggle-target='evaluation-metric-r2'>r2</button><button class='segmented-button' type='button' data-toggle-button data-toggle-group='evaluation-metrics' data-toggle-target='evaluation-metric-medae'>medae</button></div><div class='toggle-panel' data-toggle-panel data-toggle-group='evaluation-metrics' data-toggle-panel='evaluation-metric-mae' hidden><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>mae ranking</span><div id='evaluation-metric-mae-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'evaluation-metric-mae-chart',payload:{"rows":[{"label":"final_test","value":0.004113084719756373,"color":"#1e40af"}],"metricLabel":"mae"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='evaluation-metrics' data-toggle-panel='evaluation-metric-mse' hidden><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>mse ranking</span><div id='evaluation-metric-mse-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'evaluation-metric-mse-chart',payload:{"rows":[{"label":"final_test","value":2.300787157341521e-05,"color":"#1e40af"}],"metricLabel":"mse"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='evaluation-metrics' data-toggle-panel='evaluation-metric-rmse' hidden><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>rmse ranking</span><div id='evaluation-metric-rmse-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'evaluation-metric-rmse-chart',payload:{"rows":[{"label":"final_test","value":0.004796652121367069,"color":"#1e40af"}],"metricLabel":"rmse"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='evaluation-metrics' data-toggle-panel='evaluation-metric-r2' hidden><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>r2 ranking</span><div id='evaluation-metric-r2-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'evaluation-metric-r2-chart',payload:{"rows":[{"label":"final_test","value":-1.1358200466770412,"color":"#1e40af"}],"metricLabel":"r2"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></div><div class='toggle-panel' data-toggle-panel data-toggle-group='evaluation-metrics' data-toggle-panel='evaluation-metric-medae' hidden><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>medae ranking</span><div id='evaluation-metric-medae-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountBarChart',containerId:'evaluation-metric-medae-chart',payload:{"rows":[{"label":"final_test","value":0.004184519680358835,"color":"#1e40af"}],"metricLabel":"medae"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></div><div class='viz-grid'><div class='card card--wide'><span class='eyebrow'>Metric Comparison Map</span><div id='chart-0813a43ee64a45aeb49396c0c8b253f4' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountHeatmap',containerId:'chart-0813a43ee64a45aeb49396c0c8b253f4',payload:{"xLabels":["mae","mse","rmse","r2","medae"],"yLabels":["final_test"],"matrix":[[0.004113084719756373,2.300787157341521e-05,0.004796652121367069,-1.1358200466770412,0.004184519680358835]],"lowColor":"#dbe7ff","highColor":"#1e40af"}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section><section class='panel section-stack'><div class='section-head'><span class='eyebrow'>Curves on shared axes</span><h2>Interactive curve explorer</h2></div><div class='segmented' role='group' aria-label='Evaluation curve selector'><button class='segmented-button' type='button' data-toggle-button data-toggle-group='evaluation-curves' data-toggle-target='evaluation-curve-residuals' data-toggle-default='true'>Residuals</button></div><div class='toggle-panel' data-toggle-panel data-toggle-group='evaluation-curves' data-toggle-panel='evaluation-curve-residuals' hidden><div class='card card--wide'><span class='eyebrow'>Residuals</span><div id='evaluation-curve-residuals-chart' class='viz-shell'></div><script>window.mlcraftPendingCharts = window.mlcraftPendingCharts || [];window.mlcraftPendingCharts.push({chartType:'mountSeriesChart',containerId:'evaluation-curve-residuals-chart',payload:{"xLabel":"Residual","yLabel":"Count","series":[{"name":"final_test","color":"#1e40af","points":[{"x":-0.007197172133830874,"y":8.0},{"x":-0.006674833042420889,"y":4.0},{"x":-0.006152493951010904,"y":2.0},{"x":-0.005630154859600918,"y":2.0},{"x":-0.005107815768190933,"y":2.0},{"x":-0.004585476676780947,"y":2.0},{"x":-0.004063137585370962,"y":2.0},{"x":-0.0035407984939609767,"y":2.0},{"x":-0.003018459402550991,"y":2.0},{"x":-0.0024961203111410054,"y":1.0},{"x":-0.0019737812197310202,"y":2.0},{"x":-0.001451442128321035,"y":1.0},{"x":-0.0009291030369110494,"y":2.0},{"x":-0.00040676394550106425,"y":1.0},{"x":0.00011557514590892094,"y":2.0},{"x":0.0006379142373189066,"y":1.0},{"x":0.0011602533287288922,"y":2.0},{"x":0.0016825924201388778,"y":1.0},{"x":0.0022049315115488634,"y":2.0},{"x":0.002727270602958848,"y":1.0}]}]}});if (window.mlcraftD3 && typeof window.mlcraftD3['flushPendingCharts'] === 'function') { window.mlcraftD3.flushPendingCharts(); }</script></div></div></section></div>
+    <script>
+      (() => {
+        const tooltip = (() => {
+          const node = document.createElement("div");
+          node.className = "d3-tooltip";
+          document.body.appendChild(node);
+          return {
+            show(event, html) {
+              node.innerHTML = html;
+              node.classList.add("is-visible");
+              this.move(event);
+            },
+            move(event) {
+              node.style.left = `${event.clientX + 16}px`;
+              node.style.top = `${event.clientY + 16}px`;
+            },
+            hide() {
+              node.classList.remove("is-visible");
+            },
+          };
+        })();
+
+        function ensureD3(container) {
+          if (window.d3) {
+            return true;
+          }
+          if (container) {
+            container.innerHTML = "<p class='muted'>D3.js could not be loaded in this environment.</p>";
+          }
+          return false;
+        }
+
+        function createSvg(container, config = {}) {
+          const width = Math.max(config.minWidth || 640, container.clientWidth || config.minWidth || 640);
+          const height = config.height || 360;
+          const margin = Object.assign({ top: 24, right: 24, bottom: 48, left: 64 }, config.margin || {});
+          const svg = window.d3
+            .select(container)
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("class", "d3-chart");
+          return { svg, width, height, margin, innerWidth: width - margin.left - margin.right, innerHeight: height - margin.top - margin.bottom };
+        }
+
+        function mountBarChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(260, rows.length * 48 + 70), margin: { top: 18, right: 90, bottom: 34, left: 160 } });
+          const { svg, width, height, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const extent = d3.extent(rows, (d) => Number(d.value));
+          const min = Math.min(0, extent[0] ?? 0);
+          const max = Math.max(0, extent[1] ?? 1);
+          const x = d3.scaleLinear().domain([min, max]).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((d) => d.label)).range([0, innerHeight]).padding(0.28);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".bar")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => Math.min(x(0), x(d.value)))
+            .attr("y", (d) => y(d.label))
+            .attr("width", (d) => Math.abs(x(d.value) - x(0)))
+            .attr("height", y.bandwidth())
+            .attr("rx", 10)
+            .attr("fill", (d) => d.color || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>${payload.metricLabel || "value"}: ${Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.selectAll(".bar-label")
+            .data(rows)
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.value) + (d.value >= 0 ? 8 : -8))
+            .attr("y", (d) => y(d.label) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", (d) => (d.value >= 0 ? "start" : "end"))
+            .attr("fill", "var(--text-main)")
+            .attr("font-size", 12)
+            .attr("font-weight", 700)
+            .text((d) => Number(d.value).toFixed(6));
+        }
+
+        function mountHeatmap(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const xLabels = payload.xLabels || [];
+          const yLabels = payload.yLabels || [];
+          const matrix = payload.matrix || [];
+          if (!xLabels.length || !yLabels.length) {
+            container.innerHTML = "<p class='muted'>No heatmap data available.</p>";
+            return;
+          }
+          const cellSize = 44;
+          const chart = createSvg(container, {
+            height: Math.max(250, yLabels.length * cellSize + 100),
+            minWidth: Math.max(560, xLabels.length * cellSize + 180),
+            margin: { top: 18, right: 24, bottom: 90, left: 160 },
+          });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleBand().domain(xLabels).range([0, innerWidth]).padding(0.08);
+          const y = d3.scaleBand().domain(yLabels).range([0, innerHeight]).padding(0.08);
+          const values = matrix.flat().filter((value) => value !== null && !Number.isNaN(Number(value)));
+          const color = d3.scaleLinear().domain([d3.min(values) ?? 0, d3.max(values) ?? 1]).range([payload.lowColor || "#eff6ff", payload.highColor || "#1d4ed8"]);
+          const rows = [];
+          matrix.forEach((row, rowIndex) => {
+            row.forEach((value, colIndex) => {
+              rows.push({ rowLabel: yLabels[rowIndex], colLabel: xLabels[colIndex], value });
+            });
+          });
+          g.selectAll("rect")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => x(d.colLabel))
+            .attr("y", (d) => y(d.rowLabel))
+            .attr("width", x.bandwidth())
+            .attr("height", y.bandwidth())
+            .attr("rx", 8)
+            .attr("fill", (d) => (d.value === null || Number.isNaN(Number(d.value)) ? "#f8fafc" : color(Number(d.value))))
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.rowLabel}</strong><br>${d.colLabel}: ${d.value === null || Number.isNaN(Number(d.value)) ? "n/a" : Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".cell-label")
+            .data(rows.filter((d) => d.value !== null && !Number.isNaN(Number(d.value))))
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.colLabel) + x.bandwidth() / 2)
+            .attr("y", (d) => y(d.rowLabel) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 11)
+            .attr("font-weight", 700)
+            .attr("fill", "white")
+            .text((d) => Number(d.value).toFixed(3));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).tickSize(0)).selectAll("text").attr("transform", "rotate(-25)").style("text-anchor", "end");
+        }
+
+        function mountSeriesChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const series = payload.series || [];
+          if (!series.length) {
+            container.innerHTML = "<p class='muted'>No series data available.</p>";
+            return;
+          }
+          const points = series.flatMap((item) => item.points || []);
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 26, bottom: 46, left: 58 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const xValues = points.map((point) => Number(point.x));
+          const yValues = points.map((point) => Number(point.y));
+          const x = d3.scaleLinear().domain(d3.extent(xValues)).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(yValues)).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          const line = d3.line().x((d) => x(Number(d.x))).y((d) => y(Number(d.y)));
+          if (payload.diagonal) {
+            g.append("line")
+              .attr("x1", x(payload.diagonal[0][0]))
+              .attr("y1", y(payload.diagonal[0][1]))
+              .attr("x2", x(payload.diagonal[1][0]))
+              .attr("y2", y(payload.diagonal[1][1]))
+              .attr("stroke", payload.diagonalColor || "var(--grid-soft)")
+              .attr("stroke-dasharray", "4 4")
+              .attr("stroke-width", 1.5);
+          }
+          series.forEach((item) => {
+            g.append("path")
+              .datum(item.points)
+              .attr("fill", "none")
+              .attr("stroke", item.color)
+              .attr("stroke-width", 2.6)
+              .attr("stroke-dasharray", item.dash || null)
+              .attr("d", line);
+            g.selectAll(`circle-${item.name}`)
+              .data(item.points)
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(Number(d.x)))
+              .attr("cy", (d) => y(Number(d.y)))
+              .attr("r", 4.2)
+              .attr("fill", item.color)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${item.name}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+        }
+
+        function mountDumbbell(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No fold data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(250, rows.length * 44 + 60), margin: { top: 18, right: 80, bottom: 38, left: 130 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = rows.flatMap((row) => [Number(row.train_value), Number(row.val_value)]).filter((value) => !Number.isNaN(value));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((row) => row.label)).range([0, innerHeight]).padding(0.32);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".segment")
+            .data(rows)
+            .enter()
+            .append("line")
+            .attr("x1", (d) => x(Number(d.train_value)))
+            .attr("x2", (d) => x(Number(d.val_value)))
+            .attr("y1", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("y2", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("stroke", (d) => d.color || "var(--accent-2)")
+            .attr("stroke-width", 4)
+            .attr("stroke-linecap", "round");
+          g.selectAll(".train-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.train_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.trainColor || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>Train: ${Number(d.train_value).toFixed(6)}<br>Validation: ${Number(d.val_value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".val-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.val_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.validationColor || "var(--series-2)");
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        function mountScatter(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const points = payload.points || [];
+          if (!points.length) {
+            container.innerHTML = "<p class='muted'>No scatter data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 24, bottom: 42, left: 56 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.x))).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.y))).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          g.selectAll("circle")
+            .data(points)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.x)))
+            .attr("cy", (d) => y(Number(d.y)))
+            .attr("r", 4.2)
+            .attr("fill", payload.color || "var(--series-2)")
+            .attr("opacity", 0.72)
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${payload.label || "Point"}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+            .on("mouseleave", () => tooltip.hide());
+        }
+
+        function mountBeeswarm(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const groups = payload.groups || [];
+          if (!groups.length) {
+            container.innerHTML = "<p class='muted'>No SHAP values available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(280, groups.length * 42 + 60), margin: { top: 18, right: 22, bottom: 36, left: 140 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = groups.flatMap((group) => group.values.map((value) => Number(value)));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(groups.map((group) => group.label)).range([0, innerHeight]).padding(0.3);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          groups.forEach((group, groupIndex) => {
+            const baseY = y(group.label) + y.bandwidth() / 2;
+            g.selectAll(`circle-${groupIndex}`)
+              .data(group.values.map((value, index) => ({ value: Number(value), offset: ((index % 9) - 4) * 2.2 })))
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(d.value))
+              .attr("cy", (d) => baseY + d.offset)
+              .attr("r", 3.6)
+              .attr("fill", group.color || "var(--accent)")
+              .attr("opacity", 0.68)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${group.label}</strong><br>SHAP: ${d.value.toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function activateToggle(groupName, targetId) {
+          const buttons = Array.from(document.querySelectorAll(`[data-toggle-button][data-toggle-group="${groupName}"]`));
+          const panels = Array.from(document.querySelectorAll(`[data-toggle-panel][data-toggle-group="${groupName}"]`));
+          for (const button of buttons) {
+            const isActive = button.dataset.toggleTarget === targetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+          }
+          for (const panel of panels) {
+            panel.hidden = panel.dataset.togglePanel !== targetId;
+          }
+        }
+
+        const buttons = Array.from(document.querySelectorAll("[data-toggle-button][data-toggle-group][data-toggle-target]"));
+        for (const button of buttons) {
+          button.addEventListener("click", () => {
+            const groupName = button.dataset.toggleGroup;
+            const targetId = button.dataset.toggleTarget;
+            activateToggle(groupName, targetId);
+            const scrollId = button.dataset.toggleScroll;
+            if (scrollId) {
+              const node = document.getElementById(scrollId);
+              if (node) {
+                node.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+              }
+            }
+          });
+        }
+
+        const groups = new Set(buttons.map((button) => button.dataset.toggleGroup));
+        for (const groupName of groups) {
+          const groupButtons = buttons.filter((button) => button.dataset.toggleGroup === groupName);
+          const defaultButton = groupButtons.find((button) => button.dataset.toggleDefault === "true") || groupButtons[0];
+          if (defaultButton) {
+            activateToggle(groupName, defaultButton.dataset.toggleTarget);
+          }
+        }
+
+        function flushPendingCharts() {
+          const queue = window.mlcraftPendingCharts || [];
+          while (queue.length) {
+            const item = queue.shift();
+            const mount = window.mlcraftD3 && window.mlcraftD3[item.chartType];
+            if (typeof mount === "function") {
+              mount(item.containerId, item.payload || {});
+            }
+          }
+        }
+
+        window.mlcraftD3 = {
+          mountBarChart,
+          mountHeatmap,
+          mountSeriesChart,
+          mountDumbbell,
+          mountScatter,
+          mountBeeswarm,
+          flushPendingCharts,
+        };
+        flushPendingCharts();
+      })();
+    </script>
+  </section></div>
+    <script>
+      (() => {
+        const tooltip = (() => {
+          const node = document.createElement("div");
+          node.className = "d3-tooltip";
+          document.body.appendChild(node);
+          return {
+            show(event, html) {
+              node.innerHTML = html;
+              node.classList.add("is-visible");
+              this.move(event);
+            },
+            move(event) {
+              node.style.left = `${event.clientX + 16}px`;
+              node.style.top = `${event.clientY + 16}px`;
+            },
+            hide() {
+              node.classList.remove("is-visible");
+            },
+          };
+        })();
+
+        function ensureD3(container) {
+          if (window.d3) {
+            return true;
+          }
+          if (container) {
+            container.innerHTML = "<p class='muted'>D3.js could not be loaded in this environment.</p>";
+          }
+          return false;
+        }
+
+        function createSvg(container, config = {}) {
+          const width = Math.max(config.minWidth || 640, container.clientWidth || config.minWidth || 640);
+          const height = config.height || 360;
+          const margin = Object.assign({ top: 24, right: 24, bottom: 48, left: 64 }, config.margin || {});
+          const svg = window.d3
+            .select(container)
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("class", "d3-chart");
+          return { svg, width, height, margin, innerWidth: width - margin.left - margin.right, innerHeight: height - margin.top - margin.bottom };
+        }
+
+        function mountBarChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(260, rows.length * 48 + 70), margin: { top: 18, right: 90, bottom: 34, left: 160 } });
+          const { svg, width, height, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const extent = d3.extent(rows, (d) => Number(d.value));
+          const min = Math.min(0, extent[0] ?? 0);
+          const max = Math.max(0, extent[1] ?? 1);
+          const x = d3.scaleLinear().domain([min, max]).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((d) => d.label)).range([0, innerHeight]).padding(0.28);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".bar")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => Math.min(x(0), x(d.value)))
+            .attr("y", (d) => y(d.label))
+            .attr("width", (d) => Math.abs(x(d.value) - x(0)))
+            .attr("height", y.bandwidth())
+            .attr("rx", 10)
+            .attr("fill", (d) => d.color || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>${payload.metricLabel || "value"}: ${Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.selectAll(".bar-label")
+            .data(rows)
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.value) + (d.value >= 0 ? 8 : -8))
+            .attr("y", (d) => y(d.label) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", (d) => (d.value >= 0 ? "start" : "end"))
+            .attr("fill", "var(--text-main)")
+            .attr("font-size", 12)
+            .attr("font-weight", 700)
+            .text((d) => Number(d.value).toFixed(6));
+        }
+
+        function mountHeatmap(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const xLabels = payload.xLabels || [];
+          const yLabels = payload.yLabels || [];
+          const matrix = payload.matrix || [];
+          if (!xLabels.length || !yLabels.length) {
+            container.innerHTML = "<p class='muted'>No heatmap data available.</p>";
+            return;
+          }
+          const cellSize = 44;
+          const chart = createSvg(container, {
+            height: Math.max(250, yLabels.length * cellSize + 100),
+            minWidth: Math.max(560, xLabels.length * cellSize + 180),
+            margin: { top: 18, right: 24, bottom: 90, left: 160 },
+          });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleBand().domain(xLabels).range([0, innerWidth]).padding(0.08);
+          const y = d3.scaleBand().domain(yLabels).range([0, innerHeight]).padding(0.08);
+          const values = matrix.flat().filter((value) => value !== null && !Number.isNaN(Number(value)));
+          const color = d3.scaleLinear().domain([d3.min(values) ?? 0, d3.max(values) ?? 1]).range([payload.lowColor || "#eff6ff", payload.highColor || "#1d4ed8"]);
+          const rows = [];
+          matrix.forEach((row, rowIndex) => {
+            row.forEach((value, colIndex) => {
+              rows.push({ rowLabel: yLabels[rowIndex], colLabel: xLabels[colIndex], value });
+            });
+          });
+          g.selectAll("rect")
+            .data(rows)
+            .enter()
+            .append("rect")
+            .attr("x", (d) => x(d.colLabel))
+            .attr("y", (d) => y(d.rowLabel))
+            .attr("width", x.bandwidth())
+            .attr("height", y.bandwidth())
+            .attr("rx", 8)
+            .attr("fill", (d) => (d.value === null || Number.isNaN(Number(d.value)) ? "#f8fafc" : color(Number(d.value))))
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.rowLabel}</strong><br>${d.colLabel}: ${d.value === null || Number.isNaN(Number(d.value)) ? "n/a" : Number(d.value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".cell-label")
+            .data(rows.filter((d) => d.value !== null && !Number.isNaN(Number(d.value))))
+            .enter()
+            .append("text")
+            .attr("x", (d) => x(d.colLabel) + x.bandwidth() / 2)
+            .attr("y", (d) => y(d.rowLabel) + y.bandwidth() / 2 + 4)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 11)
+            .attr("font-weight", 700)
+            .attr("fill", "white")
+            .text((d) => Number(d.value).toFixed(3));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).tickSize(0)).selectAll("text").attr("transform", "rotate(-25)").style("text-anchor", "end");
+        }
+
+        function mountSeriesChart(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const series = payload.series || [];
+          if (!series.length) {
+            container.innerHTML = "<p class='muted'>No series data available.</p>";
+            return;
+          }
+          const points = series.flatMap((item) => item.points || []);
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 26, bottom: 46, left: 58 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const xValues = points.map((point) => Number(point.x));
+          const yValues = points.map((point) => Number(point.y));
+          const x = d3.scaleLinear().domain(d3.extent(xValues)).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(yValues)).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          const line = d3.line().x((d) => x(Number(d.x))).y((d) => y(Number(d.y)));
+          if (payload.diagonal) {
+            g.append("line")
+              .attr("x1", x(payload.diagonal[0][0]))
+              .attr("y1", y(payload.diagonal[0][1]))
+              .attr("x2", x(payload.diagonal[1][0]))
+              .attr("y2", y(payload.diagonal[1][1]))
+              .attr("stroke", payload.diagonalColor || "var(--grid-soft)")
+              .attr("stroke-dasharray", "4 4")
+              .attr("stroke-width", 1.5);
+          }
+          series.forEach((item) => {
+            g.append("path")
+              .datum(item.points)
+              .attr("fill", "none")
+              .attr("stroke", item.color)
+              .attr("stroke-width", 2.6)
+              .attr("stroke-dasharray", item.dash || null)
+              .attr("d", line);
+            g.selectAll(`circle-${item.name}`)
+              .data(item.points)
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(Number(d.x)))
+              .attr("cy", (d) => y(Number(d.y)))
+              .attr("r", 4.2)
+              .attr("fill", item.color)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${item.name}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+        }
+
+        function mountDumbbell(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const rows = payload.rows || [];
+          if (!rows.length) {
+            container.innerHTML = "<p class='muted'>No fold data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(250, rows.length * 44 + 60), margin: { top: 18, right: 80, bottom: 38, left: 130 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = rows.flatMap((row) => [Number(row.train_value), Number(row.val_value)]).filter((value) => !Number.isNaN(value));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(rows.map((row) => row.label)).range([0, innerHeight]).padding(0.32);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          g.selectAll(".segment")
+            .data(rows)
+            .enter()
+            .append("line")
+            .attr("x1", (d) => x(Number(d.train_value)))
+            .attr("x2", (d) => x(Number(d.val_value)))
+            .attr("y1", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("y2", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("stroke", (d) => d.color || "var(--accent-2)")
+            .attr("stroke-width", 4)
+            .attr("stroke-linecap", "round");
+          g.selectAll(".train-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.train_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.trainColor || "var(--accent)")
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${d.label}</strong><br>Train: ${Number(d.train_value).toFixed(6)}<br>Validation: ${Number(d.val_value).toFixed(6)}`))
+            .on("mouseleave", () => tooltip.hide());
+          g.selectAll(".val-dot")
+            .data(rows)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.val_value)))
+            .attr("cy", (d) => y(d.label) + y.bandwidth() / 2)
+            .attr("r", 5.4)
+            .attr("fill", payload.validationColor || "var(--series-2)");
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        function mountScatter(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const points = payload.points || [];
+          if (!points.length) {
+            container.innerHTML = "<p class='muted'>No scatter data available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: payload.height || 340, margin: { top: 20, right: 24, bottom: 42, left: 56 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.x))).nice().range([0, innerWidth]);
+          const y = d3.scaleLinear().domain(d3.extent(points, (d) => Number(d.y))).nice().range([innerHeight, 0]);
+          g.append("g").attr("class", "d3-grid").call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth));
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).ticks(5));
+          g.selectAll("circle")
+            .data(points)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => x(Number(d.x)))
+            .attr("cy", (d) => y(Number(d.y)))
+            .attr("r", 4.2)
+            .attr("fill", payload.color || "var(--series-2)")
+            .attr("opacity", 0.72)
+            .on("mousemove", (event, d) => tooltip.show(event, `<strong>${payload.label || "Point"}</strong><br>${payload.xLabel || "x"}: ${Number(d.x).toFixed(4)}<br>${payload.yLabel || "y"}: ${Number(d.y).toFixed(4)}`))
+            .on("mouseleave", () => tooltip.hide());
+        }
+
+        function mountBeeswarm(containerId, payload) {
+          const container = document.getElementById(containerId);
+          if (!container || !ensureD3(container)) return;
+          container.innerHTML = "";
+          const d3 = window.d3;
+          const groups = payload.groups || [];
+          if (!groups.length) {
+            container.innerHTML = "<p class='muted'>No SHAP values available.</p>";
+            return;
+          }
+          const chart = createSvg(container, { height: Math.max(280, groups.length * 42 + 60), margin: { top: 18, right: 22, bottom: 36, left: 140 } });
+          const { svg, margin, innerWidth, innerHeight } = chart;
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+          const values = groups.flatMap((group) => group.values.map((value) => Number(value)));
+          const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, innerWidth]);
+          const y = d3.scaleBand().domain(groups.map((group) => group.label)).range([0, innerHeight]).padding(0.3);
+          g.append("g").attr("class", "d3-grid").call(d3.axisBottom(x).ticks(5).tickSize(innerHeight)).attr("transform", "translate(0,0)");
+          groups.forEach((group, groupIndex) => {
+            const baseY = y(group.label) + y.bandwidth() / 2;
+            g.selectAll(`circle-${groupIndex}`)
+              .data(group.values.map((value, index) => ({ value: Number(value), offset: ((index % 9) - 4) * 2.2 })))
+              .enter()
+              .append("circle")
+              .attr("cx", (d) => x(d.value))
+              .attr("cy", (d) => baseY + d.offset)
+              .attr("r", 3.6)
+              .attr("fill", group.color || "var(--accent)")
+              .attr("opacity", 0.68)
+              .on("mousemove", (event, d) => tooltip.show(event, `<strong>${group.label}</strong><br>SHAP: ${d.value.toFixed(4)}`))
+              .on("mouseleave", () => tooltip.hide());
+          });
+          g.append("g").attr("class", "d3-axis").call(d3.axisLeft(y).tickSize(0)).select(".domain").remove();
+          g.append("g").attr("class", "d3-axis").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5));
+        }
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function activateToggle(groupName, targetId) {
+          const buttons = Array.from(document.querySelectorAll(`[data-toggle-button][data-toggle-group="${groupName}"]`));
+          const panels = Array.from(document.querySelectorAll(`[data-toggle-panel][data-toggle-group="${groupName}"]`));
+          for (const button of buttons) {
+            const isActive = button.dataset.toggleTarget === targetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+          }
+          for (const panel of panels) {
+            panel.hidden = panel.dataset.togglePanel !== targetId;
+          }
+        }
+
+        const buttons = Array.from(document.querySelectorAll("[data-toggle-button][data-toggle-group][data-toggle-target]"));
+        for (const button of buttons) {
+          button.addEventListener("click", () => {
+            const groupName = button.dataset.toggleGroup;
+            const targetId = button.dataset.toggleTarget;
+            activateToggle(groupName, targetId);
+            const scrollId = button.dataset.toggleScroll;
+            if (scrollId) {
+              const node = document.getElementById(scrollId);
+              if (node) {
+                node.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+              }
+            }
+          });
+        }
+
+        const groups = new Set(buttons.map((button) => button.dataset.toggleGroup));
+        for (const groupName of groups) {
+          const groupButtons = buttons.filter((button) => button.dataset.toggleGroup === groupName);
+          const defaultButton = groupButtons.find((button) => button.dataset.toggleDefault === "true") || groupButtons[0];
+          if (defaultButton) {
+            activateToggle(groupName, defaultButton.dataset.toggleTarget);
+          }
+        }
+
+        function flushPendingCharts() {
+          const queue = window.mlcraftPendingCharts || [];
+          while (queue.length) {
+            const item = queue.shift();
+            const mount = window.mlcraftD3 && window.mlcraftD3[item.chartType];
+            if (typeof mount === "function") {
+              mount(item.containerId, item.payload || {});
+            }
+          }
+        }
+
+        window.mlcraftD3 = {
+          mountBarChart,
+          mountHeatmap,
+          mountSeriesChart,
+          mountDumbbell,
+          mountScatter,
+          mountBeeswarm,
+          flushPendingCharts,
+        };
+        flushPendingCharts();
+      })();
+    </script>
+  </body>
+</html>
